@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use super::utility;
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;

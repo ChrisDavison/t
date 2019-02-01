@@ -33,6 +33,7 @@ Filtered views:
     pl|projectless            Tasks without a project
     done                      List done tasks
     filename                  Alias to print $TODOFILE
+    due [NDAYS]               Show overdue, due today, and tasks due in NDAYS
 ";
 
 fn main() {
@@ -54,10 +55,11 @@ fn main() {
         "lsp" => view::list_priorities(),
         "h" | "hide" => view::hide(&args),
         "done" => view::done(),
-        "c" | "contexts" => view::contexts(&args),
-        "p" | "projects" => view::projects(&args),
-        "cl" | "contextless" => view::contextless(&args),
-        "pl" | "projectless" => view::projectless(&args),
+        "c" | "contexts" => view::contexts(),
+        "p" | "projects" => view::projects(),
+        "cl" | "contextless" => view::contextless(),
+        "pl" | "projectless" => view::projectless(),
+        "due" => view::due(&args),
         // ========== Utility
         "filename" => utility::print_todo_filename(),
         _ => Err(From::from(USAGE)),
