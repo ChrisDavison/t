@@ -6,12 +6,14 @@ use regex::{Captures, Regex};
 use super::utility;
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+type GroupedTasks = HashMap<String, Vec<(usize, String)>>;
 
 lazy_static! {
     static ref re_ctx: Regex = Regex::new(r"@(.+?)\b").expect("Couldn't compile context regex");
     static ref re_proj: Regex = Regex::new(r"\+(.+?)\b").expect("Couldn't compile project regex");
     static ref re_due: Regex =
         Regex::new(r"due:(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
+    static ref re_pri: Regex = Regex::new(r"^- ! (.*)").expect("Couldn't compile priority regex");
 }
 
 pub fn list(args: &[String]) -> Result<()> {
@@ -28,10 +30,10 @@ pub fn list(args: &[String]) -> Result<()> {
 }
 
 pub fn list_priorities() -> Result<()> {
-    let todos = utility::get_todos(true)?;
-    let filtered = todos.iter().filter(|(_, x)| x.starts_with("- ! "));
-    for (i, line) in filtered {
-        println!("{:5}\t{}", i, &line[2..]);
+    for (_, lines) in group_by_regex(&re_pri)? {
+        for (i, line) in lines {
+            println!("{:5}\t{}", i, &line[2..]);
+        }
     }
     Ok(())
 }
@@ -57,15 +59,15 @@ pub fn done() -> Result<()> {
     Ok(())
 }
 
-fn count_regex_matches(r: &Regex) -> Result<HashMap<String, usize>> {
-    let mut map = HashMap::new();
-    for (_, line) in utility::get_todos(false)? {
+pub fn group_by_regex(r: &Regex) -> Result<GroupedTasks> {
+    let mut map: HashMap<String, Vec<(usize, String)>> = HashMap::new();
+    for (i, line) in utility::get_todos(true)? {
         for cap in r.captures_iter(&line) {
             let c = cap[0].to_owned();
-            if let Some(x) = map.get(&c) {
-                map.insert(c, x + 1);
+            if let Some(x) = map.get_mut(&c) {
+                (*x).push((i, line.clone()))
             } else {
-                map.insert(c, 1);
+                map.insert(c, vec![(i, line.clone())]);
             }
         }
     }
@@ -73,19 +75,38 @@ fn count_regex_matches(r: &Regex) -> Result<HashMap<String, usize>> {
 }
 
 pub fn contexts() -> Result<()> {
-    let todos = utility::get_todos(false)?;;
-    println!("{} tasks", todos.len());
-    for (project, count) in count_regex_matches(&re_ctx)? {
-        println!("{:5} {}", count, project);
+    println!("{} tasks", utility::get_todos(false)?.len());
+    for (header, lines) in group_by_regex(&re_ctx)? {
+        println!("{:5}\t{}", lines.len(), header);
     }
     Ok(())
 }
 
 pub fn projects() -> Result<()> {
-    let todos = utility::get_todos(false)?;;
-    println!("{} tasks", todos.len());
-    for (project, count) in count_regex_matches(&re_proj)? {
-        println!("{:5} {}", count, project);
+    println!("{} tasks", utility::get_todos(false)?.len());
+    for (header, lines) in group_by_regex(&re_proj)? {
+        println!("{:5}\t{}", lines.len(), header);
+    }
+    Ok(())
+}
+
+pub fn context_view() -> Result<()> {
+    for (header, lines) in group_by_regex(&re_ctx)? {
+        println!("{}", header);
+        for (i, line) in lines {
+            println!("\t{:5}\t{}", i, &line[2..]);
+        }
+    }
+    Ok(())
+}
+
+pub fn project_view() -> Result<()> {
+    for (header, lines) in group_by_regex(&re_proj)? {
+        println!("{}", header);
+        for (i, line) in lines {
+            println!("\t{:5}\t{}", i, &line[2..]);
+        }
+        println!();
     }
     Ok(())
 }
@@ -117,40 +138,55 @@ fn get_datediff(capture: &Captures) -> Result<i64> {
     Ok((now - task_date).num_days())
 }
 
-pub fn due(args: &[String]) -> Result<()> {
-    let mut map: HashMap<i64, Vec<(usize, String)>> = HashMap::new();
+pub fn due() -> Result<()> {
+    let mut map: HashMap<i64, Vec<(String, usize, String)>> = HashMap::new();
     for (i, line) in utility::get_todos(false)? {
         for cap in re_due.captures_iter(&line) {
             let diff = get_datediff(&cap)?;
             if let Some(x) = map.get_mut(&diff) {
-                (*x).push((i, line.clone()));
+                (*x).push((cap[0].to_string(), i, line.clone()));
             } else {
-                map.insert(diff, vec![(i, line.clone())]);
+                map.insert(diff, vec![(cap[0].to_string(), i, line.clone())]);
             }
         }
     }
-    let future = if args.is_empty() {
-        -999
-    } else {
-        args[0].parse()?
-    };
+
     let mut keys: Vec<i64> = map.keys().cloned().collect();
     keys.sort();
     keys.reverse();
     for days in keys {
-        if days > 0 {
-            println!("{} days overdue", days);
-        } else if days == 0 {
-            println!("DUE TODAY");
-        } else if days < future {
-            println!("Due in {} days", -days)
-        } else {
-            continue;
+        for (date, i, line) in &map[&days] {
+            println!("{:10}\t{:5}\t{}", &date[4..], i, &line[2..]);
         }
-        for (i, line) in &map[&days] {
-            println!("\t{}\t{}", i, &line[2..]);
+    }
+    Ok(())
+}
+
+pub fn mit() -> Result<()> {
+    let mut map: HashMap<i64, Vec<(String, usize, String)>> = HashMap::new();
+    for (i, line) in utility::get_todos(false)? {
+        for cap in re_due.captures_iter(&line) {
+            let diff = get_datediff(&cap)?;
+            if diff < 0 {
+                continue
+            }
+            if let Some(x) = map.get_mut(&diff) {
+                (*x).push((cap[0].to_string(), i, line.clone()));
+            } else {
+                map.insert(diff, vec![(cap[0].to_string(), i, line.clone())]);
+            }
         }
-        println!();
+    }
+    let mut keys: Vec<i64> = map.keys().cloned().collect();
+    keys.sort();
+    keys.reverse();
+    for days in keys {
+        for (date, i, line) in &map[&days] {
+            if !line.starts_with("- ! ") {
+                continue;
+            }
+            println!("{}\t{:-5}\t{}", &date[4..], i, &line[4..]);
+        }
     }
     Ok(())
 }

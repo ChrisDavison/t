@@ -27,6 +27,9 @@ Viewing:
     hide QUERY       List notes NOT matching query
     c|contexts       List all unique contexts '+CONTEXT'
     p|projects       List all unique projects '@PROJECT'
+    pv               List all tasks, grouped by project
+    cv               List all tasks, grouped by context
+    mit              PRIORITY tasks overdue, or due today
 
 Filtered views:
     cl|contextless            Tasks without a context
@@ -59,7 +62,10 @@ fn main() {
         "p" | "projects" => view::projects(),
         "cl" | "contextless" => view::contextless(),
         "pl" | "projectless" => view::projectless(),
-        "due" => view::due(&args),
+        "due" => view::due(),
+        "pv"|"projectview" => view::project_view(),
+        "cv"|"contextview" => view::context_view(),
+        "mit"|"important" => view::mit(),
         // ========== Utility
         "filename" => utility::print_todo_filename(),
         _ => Err(From::from(USAGE)),
