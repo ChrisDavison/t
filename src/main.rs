@@ -10,7 +10,7 @@ mod utility;
 
 const USAGE: &str = "usage: t <CMD> [ARGS...]
 
-Generally, assume QUERY is literal (e.g. rg -F QUERY).
+View-queries are literal, not regex.
 
 Modifying:
     a|add TEXT...       Add a task
