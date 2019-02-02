@@ -16,13 +16,19 @@ lazy_static! {
     static ref re_pri: Regex = Regex::new(r"^- ! (.*)").expect("Couldn't compile priority regex");
 }
 
+fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
+    haystack.to_ascii_lowercase().contains(&needle.to_ascii_lowercase())
+}
+
 pub fn list(args: &[String]) -> Result<()> {
     let todos = utility::get_todos(true)?;
     let query = match args.get(0) {
         Some(q) => q,
         None => "",
     };
-    let filtered = todos.iter().filter(|(_, x)| x.contains(query));
+    let filtered = todos
+        .iter()
+        .filter(|(_, x)| case_insensitive_match(x, query));
     for (i, line) in filtered {
         println!("{:5}\t{}", i, &line[2..]);
     }
@@ -44,7 +50,9 @@ pub fn hide(args: &[String]) -> Result<()> {
         Some(q) => q,
         None => "",
     };
-    let filtered = todos.iter().filter(|(_, x)| !x.contains(query));
+    let filtered = todos
+        .iter()
+        .filter(|(_, x)| !case_insensitive_match(x, query));
     for (i, line) in filtered {
         println!("{:5}\t{}", i, line);
     }
