@@ -99,9 +99,12 @@ pub fn projects() -> Result<()> {
 }
 
 pub fn context_view() -> Result<()> {
-    for (header, lines) in group_by_regex(&re_ctx)? {
+    let grouped = group_by_regex(&re_ctx)?;
+    let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
+    keys.sort();
+    for header in keys {
         println!("{}", header);
-        for (i, line) in lines {
+        for (i, line) in &grouped[&header] {
             println!("\t{:5}\t{}", i, &line[2..]);
         }
     }
@@ -109,12 +112,14 @@ pub fn context_view() -> Result<()> {
 }
 
 pub fn project_view() -> Result<()> {
-    for (header, lines) in group_by_regex(&re_proj)? {
+    let grouped = group_by_regex(&re_proj)?;
+    let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
+    keys.sort();
+    for header in keys {
         println!("{}", header);
-        for (i, line) in lines {
+        for (i, line) in &grouped[&header] {
             println!("\t{:5}\t{}", i, &line[2..]);
         }
-        println!();
     }
     Ok(())
 }
