@@ -44,7 +44,15 @@ fn main() {
         "filename" => utility::print_todo_filename(),
         "help" => short_usage(),
         "lh" | "longhelp" => long_usage(),
-        _ => view::list(&args),
+        _ => {
+            if !cmd.is_empty() {
+                println!(
+                    "Command `{}` unknown.  Defaulting to list (see help or shorthelp)\n",
+                    cmd
+                );
+            }
+            view::list(&args)
+        }
     };
 
     if res.is_err() {
