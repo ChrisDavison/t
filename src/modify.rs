@@ -77,12 +77,14 @@ pub fn do_task(args: &[String]) -> Result<()> {
 }
 
 pub fn undo(args: &[String]) -> Result<()> {
-    if args.is_empty() {
-        return Err(From::from("usage: t undo IDX"));
-    }
     let mut todos = utility::get_todos(false)?;
     let mut dones = utility::get_done()?;
-    let idx: usize = args[0].parse()?;
+    let idx = if args.is_empty() {
+        println!("Undoing LAST `done`");
+        todos.len()
+    } else {
+        args[0].parse()?
+    };
     if idx >= dones.len() {
         return Err(From::from("IDX must be within range of num done"));
     }

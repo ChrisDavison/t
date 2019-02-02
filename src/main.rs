@@ -1,45 +1,15 @@
 extern crate chrono;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 extern crate regex;
 
 use std::env;
 
-mod view;
 mod modify;
 mod utility;
+mod view;
 
-const USAGE: &str = "usage: t <CMD> [ARGS...]
-
-View-queries are literal, not regex.
-
-Modifying:
-    a,add TEXT...           Add a task
-    rm #NUM                 Remove item #NUM
-    do #NUM                 Mark item #NUM as done
-    undo #NUM               Move item #NUM from DONEFILE into TODOFILE
-    up #NUM                 Upgrade task #NUM to a priority
-    down #NUM               Downgrade task #NUM to a normal task
-    app,append IDX TEXT...  Append TEXT... to task IDX
-    repeat IDX              copy task IDX to done, but leave in tasks (e.g. repeat)
-
-Viewing:
-    ls [QUERY]       List tasks (optionally filtered)
-    lsp              List prioritised tasks (optionally filtered)
-    hide QUERY       List notes NOT matching query
-    c,contexts       List all unique contexts '+CONTEXT'
-    p,projects       List all unique projects '@PROJECT'
-    pv               List all tasks, grouped by project
-    cv               List all tasks, grouped by context
-    mit              PRIORITY tasks overdue, or due today
-
-Filtered views:
-    cl,contextless            Tasks without a context
-    pl,projectless            Tasks without a project
-    done                      List done tasks
-    filename                  Alias to print $TODOFILE
-    due [NDAYS]               Show overdue, due today, and tasks due in NDAYS
-    nd,nodate                 Show all todos without a due date
-";
+type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
 fn main() {
     let cmd: String = env::args().skip(1).take(1).collect();
@@ -66,13 +36,15 @@ fn main() {
         "cl" | "contextless" => view::contextless(),
         "pl" | "projectless" => view::projectless(),
         "due" => view::due(),
-        "nd"|"nodate" => view::no_date(),
-        "pv"|"projectview" => view::project_view(),
-        "cv"|"contextview" => view::context_view(),
-        "mit"|"important" => view::mit(),
+        "nd" | "nodate" => view::no_date(),
+        "pv" | "projectview" => view::project_view(),
+        "cv" | "contextview" => view::context_view(),
+        "mit" | "important" => view::mit(),
         // ========== Utility
         "filename" => utility::print_todo_filename(),
-        _ => Err(From::from(USAGE)),
+        "help" => short_usage(),
+        "lh" | "longhelp" => long_usage(),
+        _ => view::list(&args),
     };
 
     if res.is_err() {
@@ -85,4 +57,64 @@ fn main() {
         println!("{}", res.unwrap_err().description());
         std::process::exit(2);
     }
+}
+
+fn short_usage() -> Result<()> {
+    println!(
+        "usage: t <CMD> [ARGS...]
+
+Most common commands
+    a    TEXT...       Add a task
+    rm   IDX           Remove item IDX
+    do   IDX           Move item IDX to $DONEFILE
+    app  IDX TEXT...   Append TEXT... to task IDX
+    ls   [QUERY]       List tasks (optionally filtered)
+    mit                PRIORITY tasks overdue, or due today
+    done               List done tasks
+    longhelp           Show ALL commands
+"
+    );
+    Ok(())
+}
+
+fn long_usage() -> Result<()> {
+    println!(
+        "usage: t <CMD> [ARGS...]
+
+View-queries are literal, not regex.
+
+Modifying:
+    a,add TEXT...           Add a task
+    rm IDX                  Remove item IDX
+    do IDX                  Move item IDX to $DONEFILE
+    undo IDX                Move item IDX from $DONEFILE into $TODOFILE
+    up IDX                  Upgrade task IDX to a priority
+    down IDX                Downgrade task IDX to a normal task
+    app,append IDX TEXT...  Append TEXT... to task IDX
+    repeat IDX              copy task IDX to done, but leave in tasks (e.g. repeat)
+
+Viewing:
+    ls [QUERY]       List tasks (optionally filtered)
+    lsp              List prioritised tasks (optionally filtered)
+    hide QUERY       List notes NOT matching query
+    c,contexts       List all unique contexts '+CONTEXT'
+    p,projects       List all unique projects '@PROJECT'
+    pv               List all tasks, grouped by project
+    cv               List all tasks, grouped by context
+    mit              PRIORITY tasks overdue, or due today
+
+Filtered views:
+    cl,contextless            Tasks without a context
+    pl,projectless            Tasks without a project
+    done                      List done tasks
+    filename                  Alias to print $TODOFILE
+    due [NDAYS]               Show overdue, due today, and tasks due in NDAYS
+    nd,nodate                 Show all todos without a due date
+
+Other:
+    help             Display short help message (most common commands)
+    longhelp         Display this help message
+"
+    );
+    Ok(())
 }
