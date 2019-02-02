@@ -20,6 +20,7 @@ Modifying:
     up #NUM                 Upgrade task #NUM to a priority
     down #NUM               Downgrade task #NUM to a normal task
     app,append IDX TEXT...  Append TEXT... to task IDX
+    repeat IDX              copy task IDX to done, but leave in tasks (e.g. repeat)
 
 Viewing:
     ls [QUERY]       List tasks (optionally filtered)
@@ -54,6 +55,7 @@ fn main() {
         "up" | "upgrade" => modify::upgrade(&args),
         "down" | "downgrade" => modify::downgrade(&args),
         "cleardone" => modify::clear_done(),
+        "repeat" => modify::repeat_task(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&args),
         "lsp" => view::list_priorities(),

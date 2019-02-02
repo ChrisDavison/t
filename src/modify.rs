@@ -40,6 +40,23 @@ pub fn remove(args: &[String]) -> Result<()> {
     utility::write_enumerated_todos(&todos)
 }
 
+pub fn repeat_task(args: &[String]) -> Result<()> {
+    if args.is_empty() {
+        return Err(From::from("usage: t do IDX"));
+    }
+    let todos = utility::get_todos(false)?;
+    let mut dones = utility::get_done()?;
+    let idx: usize = args[0].parse()?;
+    if idx >= todos.len() {
+        return Err(From::from("IDX must be within range of num todos"));
+    }
+    let dated_task = format!("{} done:{}", todos[idx].1, utility::get_formatted_date());
+    println!("REPEATING: {}", &todos[idx].1);
+    dones.push((todos[idx].0, dated_task));
+
+    utility::write_enumerated_dones(&dones)
+}
+
 pub fn do_task(args: &[String]) -> Result<()> {
     if args.is_empty() {
         return Err(From::from("usage: t do IDX"));
@@ -51,6 +68,7 @@ pub fn do_task(args: &[String]) -> Result<()> {
         return Err(From::from("IDX must be within range of num todos"));
     }
     let dated_task = format!("{} done:{}", todos[idx].1, utility::get_formatted_date());
+    println!("COMPLETE: {}", dated_task);
     dones.push((todos[idx].0, dated_task));
     todos.remove(idx);
 
