@@ -102,10 +102,10 @@ pub fn context_view() -> Result<()> {
     let grouped = group_by_regex(&re_ctx)?;
     let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
     keys.sort();
+    let max = keys.iter().map(|x| x.len()).max().expect("Couldn't get longest key");
     for header in keys {
-        println!("{}", header);
         for (i, line) in &grouped[&header] {
-            println!("\t{:5}\t{}", i, &line[2..]);
+            println!("{:width$}\t{:5}\t{}", header, i, &line[2..], width=max);
         }
     }
     Ok(())
@@ -115,10 +115,10 @@ pub fn project_view() -> Result<()> {
     let grouped = group_by_regex(&re_proj)?;
     let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
     keys.sort();
+    let max = keys.iter().map(|x| x.len()).max().expect("Couldn't get longest key");
     for header in keys {
-        println!("{}", header);
         for (i, line) in &grouped[&header] {
-            println!("\t{:5}\t{}", i, &line[2..]);
+            println!("{:width$}\t{:5}\t{}", header, i, &line[2..], width=max);
         }
     }
     Ok(())
