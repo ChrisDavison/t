@@ -170,13 +170,22 @@ pub fn due() -> Result<()> {
     Ok(())
 }
 
+pub fn no_date() -> Result<()> {
+    for (i, line) in utility::get_todos(true)? {
+        if !re_due.is_match(&line) {
+            println!("{:5}\t{}", i, &line[2..]);
+        }
+    }
+    Ok(())
+}
+
 pub fn mit() -> Result<()> {
     let mut map: HashMap<i64, Vec<(String, usize, String)>> = HashMap::new();
     for (i, line) in utility::get_todos(false)? {
         for cap in re_due.captures_iter(&line) {
             let diff = get_datediff(&cap)?;
             if diff < 0 {
-                continue
+                continue;
             }
             if let Some(x) = map.get_mut(&diff) {
                 (*x).push((cap[0].to_string(), i, line.clone()));

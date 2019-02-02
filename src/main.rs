@@ -13,30 +13,31 @@ const USAGE: &str = "usage: t <CMD> [ARGS...]
 View-queries are literal, not regex.
 
 Modifying:
-    a|add TEXT...       Add a task
-    rm #NUM             Remove item #NUM
-    do #NUM             Mark item #NUM as done
-    undo #NUM           Move item #NUM from DONEFILE into TODOFILE
-    up #NUM             Upgrade task #NUM to a priority
-    down #NUM           Downgrade task #NUM to a normal task
-    append IDX TEXT...  Append TEXT... to task IDX
+    a,add TEXT...           Add a task
+    rm #NUM                 Remove item #NUM
+    do #NUM                 Mark item #NUM as done
+    undo #NUM               Move item #NUM from DONEFILE into TODOFILE
+    up #NUM                 Upgrade task #NUM to a priority
+    down #NUM               Downgrade task #NUM to a normal task
+    app,append IDX TEXT...  Append TEXT... to task IDX
 
 Viewing:
     ls [QUERY]       List tasks (optionally filtered)
-    lsp [QUERY]      List prioritised tasks (optionally filtered)
+    lsp              List prioritised tasks (optionally filtered)
     hide QUERY       List notes NOT matching query
-    c|contexts       List all unique contexts '+CONTEXT'
-    p|projects       List all unique projects '@PROJECT'
+    c,contexts       List all unique contexts '+CONTEXT'
+    p,projects       List all unique projects '@PROJECT'
     pv               List all tasks, grouped by project
     cv               List all tasks, grouped by context
     mit              PRIORITY tasks overdue, or due today
 
 Filtered views:
-    cl|contextless            Tasks without a context
-    pl|projectless            Tasks without a project
+    cl,contextless            Tasks without a context
+    pl,projectless            Tasks without a project
     done                      List done tasks
     filename                  Alias to print $TODOFILE
     due [NDAYS]               Show overdue, due today, and tasks due in NDAYS
+    nd,nodate                 Show all todos without a due date
 ";
 
 fn main() {
@@ -63,6 +64,7 @@ fn main() {
         "cl" | "contextless" => view::contextless(),
         "pl" | "projectless" => view::projectless(),
         "due" => view::due(),
+        "nd"|"nodate" => view::no_date(),
         "pv"|"projectview" => view::project_view(),
         "cv"|"contextview" => view::context_view(),
         "mit"|"important" => view::mit(),
