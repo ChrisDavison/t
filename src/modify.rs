@@ -5,6 +5,7 @@ type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 pub fn add(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos(false)?;
     let msg = format!("- {}", args.join(" "));
+    println!("ADDED: {}", msg);
     todos.push((todos.len(), msg));
     utility::write_enumerated_todos(&todos)
 }
@@ -22,7 +23,9 @@ pub fn append(args: &[String]) -> Result<()> {
         )));
     }
     let msg: String = args.iter().skip(1).cloned().collect();
-    todos[idx] = (todos[idx].0, format!("{} {}", todos[idx].1, msg));
+    let new = format!("{} {}", todos[idx].1, msg);
+    println!("AFTER APPEND: {}", new);
+    todos[idx] = (todos[idx].0, new);
     utility::write_enumerated_todos(&todos)
 }
 
@@ -88,6 +91,7 @@ pub fn undo(args: &[String]) -> Result<()> {
     if idx >= dones.len() {
         return Err(From::from("IDX must be within range of num done"));
     }
+    println!("UNDONE: {}", dones[idx].1);
     todos.push((dones[idx].0, dones[idx].1.clone()));
     dones.remove(idx);
 
@@ -107,8 +111,11 @@ pub fn upgrade(args: &[String]) -> Result<()> {
             todos.len()
         )));
     }
+
     if !todos[idx].1.starts_with("- ! ") {
-        todos[idx] = (todos[idx].0, format!("- ! {}", &todos[idx].1[2..]));
+        let msg = format!("- ! {}", &todos[idx].1[2..]);
+        println!("UPGRADED: {}", msg);
+        todos[idx] = (todos[idx].0, msg);
     }
     utility::write_enumerated_todos(&todos)
 }
@@ -126,13 +133,16 @@ pub fn downgrade(args: &[String]) -> Result<()> {
         )));
     }
     if todos[idx].1.starts_with("- ! ") {
-        todos[idx] = (todos[idx].0, format!("- {}", &todos[idx].1[4..]));
+        let msg = format!("- {}", &todos[idx].1[4..]);
+        println!("UPGRADED: {}", msg);
+        todos[idx] = (todos[idx].0, msg);
     }
     utility::write_enumerated_todos(&todos)
 }
 
 pub fn clear_done() -> Result<()> {
     let filename = std::env::var("DONEFILE")?;
+    println!("DONEFILE contents emptied");
     std::fs::write(filename, String::new())?;
     Ok(())
 }
