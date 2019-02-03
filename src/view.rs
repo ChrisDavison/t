@@ -54,7 +54,7 @@ pub fn hide(args: &[String]) -> Result<()> {
         .iter()
         .filter(|(_, x)| !case_insensitive_match(x, query));
     for (i, line) in filtered {
-        println!("{:5}\t{}", i, line);
+        println!("{:5}\t{}", i, &line[2..]);
     }
     Ok(())
 }
