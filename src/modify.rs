@@ -1,4 +1,5 @@
 use super::utility;
+use std::io::{self, Write};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
@@ -145,4 +146,32 @@ pub fn clear_done() -> Result<()> {
     println!("DONEFILE contents emptied");
     std::fs::write(filename, String::new())?;
     Ok(())
+}
+
+pub fn schedule(args: &[String]) -> Result<()> {
+    let idx: usize = match args.get(0) {
+        Some(i) => i.parse()?,
+        None => return Err(From::from("Must pass IDX")),
+    };
+    let date: String = match args.get(1) {
+        Some(i) => i.to_owned(),
+        None => {
+            let mut date = String::new();
+            print!("Date: ");
+            io::stdout().flush()?;
+            io::stdin().read_line(&mut date)?;
+            date
+        },
+    };
+    let mut todos = utility::get_todos(false)?;
+    if todos.len() < idx {
+        return Err(From::from(format!(
+            "IDX must be < {} (number of tasks)",
+            todos.len()
+        )));
+    }
+    let new = format!("{} due:{}", todos[idx].1, date);
+    println!("SCHEDULED: {}", new);
+    todos[idx] = (todos[idx].0, new);
+    utility::write_enumerated_todos(&todos)
 }

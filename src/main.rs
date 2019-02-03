@@ -26,6 +26,7 @@ fn main() {
         "down" | "downgrade" => modify::downgrade(&args),
         "cleardone" => modify::clear_done(),
         "repeat" => modify::repeat_task(&args),
+        "schedule" => modify::schedule(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&args),
         "lsp" => view::list_priorities(),
@@ -100,6 +101,7 @@ Modifying:
     down IDX                Downgrade task IDX to a normal task
     app,append IDX TEXT...  Append TEXT... to task IDX
     repeat IDX              copy task IDX to done, but leave in tasks (e.g. repeat)
+    schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
 
 Viewing:
     ls [QUERY]       List tasks (optionally filtered)
