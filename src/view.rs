@@ -1,3 +1,5 @@
+use super::utility;
+
 use std::collections::hash_map::HashMap;
 
 use chrono::{Date, NaiveDate, Utc};
@@ -13,11 +15,7 @@ lazy_static! {
     static ref re_pri: Regex = Regex::new(r"^- ! (.*)").expect("Couldn't compile priority regex");
 }
 
-fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
-    haystack
-        .to_ascii_lowercase()
-        .contains(&needle.to_ascii_lowercase())
-}
+
 
 pub fn list(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     let query = match args.get(0) {
@@ -26,7 +24,7 @@ pub fn list(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     };
     let filtered = todos
         .iter()
-        .filter(|(_, x)| case_insensitive_match(x, query));
+        .filter(|(_, x)| utility::case_insensitive_match(x, query));
     for (i, line) in filtered {
         println!("{:5}\t{}", i, &line[2..]);
     }

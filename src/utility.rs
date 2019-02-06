@@ -108,13 +108,19 @@ pub fn filter_todos(
 ) -> Vec<(usize, String)> {
     let todos_positive: Vec<(usize, String)> = todos
         .iter()
-        .filter(|&(_, x)| positives.iter().all(|y| x.contains(y)))
+        .filter(|&(_, x)| positives.iter().all(|y| case_insensitive_match(&x, &y)))
         .map(|(i, x)| (i.to_owned(), x.to_owned()))
         .collect();
     let todos_no_negative: Vec<(usize, String)> = todos_positive
         .iter()
-        .filter(|&(_, x)| !negatives.iter().any(|y| x.contains(y)))
+        .filter(|&(_, x)| !negatives.iter().any(|y| case_insensitive_match(&x, &y)))
         .map(|(i, x)| (i.to_owned(), x.to_owned()))
         .collect();
     todos_no_negative
+}
+
+pub fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
+    haystack
+        .to_ascii_lowercase()
+        .contains(&needle.to_ascii_lowercase())
 }
