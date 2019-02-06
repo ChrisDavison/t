@@ -1,4 +1,4 @@
-use super::utility;
+use super::{utility, view};
 use std::io::{self, Write};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
@@ -101,17 +101,18 @@ pub fn do_task(args: &[String]) -> Result<()> {
 pub fn undo(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos(false)?;
     let mut dones = utility::get_done()?;
+    let mut msg = "UNDONE";
     let idx = if args.is_empty() {
-        println!("Undoing LAST `done`");
-        dones.len()-1
+        msg = "UNDONE LAST";
+        dones.len() - 1
     } else {
         args[0].parse()?
     };
     if idx >= dones.len() {
         return Err(From::from("IDX must be within range of num done"));
     }
-    let shortened = &dones[idx].1[..dones[idx].1.len()-16];
-    println!("UNDONE {}", &shortened[2..]);
+    let shortened = &dones[idx].1[..dones[idx].1.len() - 16];
+    println!("{} {}", msg, &shortened[2..]);
     todos.push((dones[idx].0, shortened.to_owned()));
     dones.remove(idx);
 
@@ -180,7 +181,7 @@ pub fn schedule(args: &[String]) -> Result<()> {
             io::stdout().flush()?;
             io::stdin().read_line(&mut date)?;
             date
-        },
+        }
     };
     let mut todos = utility::get_todos(false)?;
     if todos.len() < idx {
@@ -192,5 +193,14 @@ pub fn schedule(args: &[String]) -> Result<()> {
     let new = format!("{} due:{}", todos[idx].1, date);
     println!("SCHEDULED {}", &new[2..]);
     todos[idx] = (todos[idx].0, new);
+    utility::write_enumerated_todos(&todos)
+}
+
+pub fn unschedule(args: &[String]) -> Result<()> {
+    let mut todos = utility::get_todos(false)?;
+    let idx: usize = args[0].parse()?;
+    let (_, todo) = &todos[idx];
+    println!("UNSCHEDULED {}", &todo[2..]);
+    todos[idx] = (idx, view::re_due.replace(&todo, "").to_string());
     utility::write_enumerated_todos(&todos)
 }

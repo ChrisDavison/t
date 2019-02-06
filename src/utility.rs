@@ -78,3 +78,43 @@ pub fn check_for_blank_files() -> Result<()> {
     }
     Ok(())
 }
+
+pub fn parse_args() -> (String, Vec<String>, Vec<String>, Vec<String>) {
+    let raw_args: Vec<String> = env::args().skip(1).collect();
+    // let cmd: String = env::args().skip(1).take(1).collect();
+    // let args: Vec<String> = env::args().skip(2).collect();
+    let positives: Vec<String> = raw_args
+        .iter()
+        .filter(|&x| x.starts_with('+'))
+        .map(|x| x[1..].to_owned())
+        .collect();
+    let negatives: Vec<String> = raw_args
+        .iter()
+        .filter(|&x| x.starts_with('-'))
+        .map(|x| x[1..].to_owned())
+        .collect();
+    let args_final: Vec<String> = raw_args
+        .iter()
+        .filter(|&x| !x.starts_with('+') && !x.starts_with('-'))
+        .map(|x| x.to_owned())
+        .collect();
+    (args_final.iter().take(1).map(|x| x.to_owned()).collect(), positives, negatives, args_final.iter().skip(1).map(|x| x.to_owned()).collect())
+}
+
+pub fn filter_todos(
+    todos: &[(usize, String)],
+    positives: &[String],
+    negatives: &[String],
+) -> Vec<(usize, String)> {
+    let todos_positive: Vec<(usize, String)> = todos
+        .iter()
+        .filter(|&(_, x)| positives.iter().all(|y| x.contains(y)))
+        .map(|(i, x)| (i.to_owned(), x.to_owned()))
+        .collect();
+    let todos_no_negative: Vec<(usize, String)> = todos_positive
+        .iter()
+        .filter(|&(_, x)| !negatives.iter().any(|y| x.contains(y)))
+        .map(|(i, x)| (i.to_owned(), x.to_owned()))
+        .collect();
+    todos_no_negative
+}
