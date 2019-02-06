@@ -27,6 +27,7 @@ fn main() {
         "cleardone" => modify::clear_done(),
         "repeat" => modify::repeat_task(&args),
         "schedule" => modify::schedule(&args),
+        "today" => modify::today(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&args),
         "lsp" => view::list_priorities(),
@@ -102,6 +103,7 @@ Modifying:
     app,append IDX TEXT...  Append TEXT... to task IDX
     repeat IDX              copy task IDX to done, but leave in tasks (e.g. repeat)
     schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
+    today IDX               Schedule task IDX for today
 
 Viewing:
     ls [QUERY]       List tasks (optionally filtered)
