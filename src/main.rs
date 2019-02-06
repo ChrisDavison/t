@@ -33,14 +33,11 @@ fn main() {
         "lsp" => view::list_priorities(),
         "h" | "hide" => view::hide(&args),
         "done" => view::done(),
-        "c" | "contexts" => view::contexts(),
         "p" | "projects" => view::projects(),
-        "cl" | "contextless" => view::contextless(),
         "pl" | "projectless" => view::projectless(),
         "due" => view::due(),
         "nd" | "nodate" => view::no_date(),
         "pv" | "projectview" => view::project_view(),
-        "cv" | "contextview" => view::context_view(),
         "mit" | "important" => view::mit(),
         // ========== Utility
         "filename" => utility::print_todo_filename(),
@@ -94,14 +91,14 @@ fn long_usage() -> Result<()> {
 View-queries are literal, not regex.
 
 Modifying:
-    a,add TEXT...           Add a task
+    a TEXT...               Add a task (add)
     rm IDX                  Remove item IDX
     do IDX                  Move item IDX to $DONEFILE
     undo IDX                Move item IDX from $DONEFILE into $TODOFILE
     up IDX                  Upgrade task IDX to a priority
     down IDX                Downgrade task IDX to a normal task
-    app,append IDX TEXT...  Append TEXT... to task IDX
-    repeat IDX              copy task IDX to done, but leave in tasks (e.g. repeat)
+    app IDX TEXT...         Append TEXT... to task IDX (append)
+    repeat IDX              copy task IDX to done, but leave in tasks
     schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
     today IDX               Schedule task IDX for today
 
@@ -109,19 +106,13 @@ Viewing:
     ls [QUERY]       List tasks (optionally filtered)
     lsp              List prioritised tasks (optionally filtered)
     hide QUERY       List notes NOT matching query
-    c,contexts       List all unique contexts '+CONTEXT'
-    p,projects       List all unique projects '@PROJECT'
-    pv               List all tasks, grouped by project
-    cv               List all tasks, grouped by context
+    p                List all unique projects '#PROJECT' (projects)
+    pv               List all tasks, grouped by project (projectview)
+    pl               List all tasks WITHOUT a project (projectless)
     mit              PRIORITY tasks overdue, or due today
-
-Filtered views:
-    cl,contextless            Tasks without a context
-    pl,projectless            Tasks without a project
-    done                      List done tasks
-    filename                  Alias to print $TODOFILE
-    due [NDAYS]               Show overdue, due today, and tasks due in NDAYS
-    nd,nodate                 Show all todos without a due date
+    done             List done tasks
+    due [NDAYS]      Show overdue, due today, and tasks due in NDAYS
+    nd               Show all todos without a due date (nodate)
 
 Other:
     help             Display short help message (most common commands)

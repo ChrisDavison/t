@@ -9,7 +9,6 @@ type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 type GroupedTasks = HashMap<String, Vec<(usize, String)>>;
 
 lazy_static! {
-    static ref re_ctx: Regex = Regex::new(r"@(.+?)\b").expect("Couldn't compile context regex");
     static ref re_proj: Regex = Regex::new(r"\+(.+?)\b").expect("Couldn't compile project regex");
     static ref re_due: Regex =
         Regex::new(r"due:(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
@@ -82,30 +81,15 @@ pub fn group_by_regex(r: &Regex) -> Result<GroupedTasks> {
     Ok(map)
 }
 
-pub fn contexts() -> Result<()> {
-    println!("{} tasks", utility::get_todos(false)?.len());
-    for (header, lines) in group_by_regex(&re_ctx)? {
-        println!("{:5}\t{}", lines.len(), header);
-    }
-    Ok(())
-}
 
 pub fn projects() -> Result<()> {
     println!("{} tasks", utility::get_todos(false)?.len());
-    for (header, lines) in group_by_regex(&re_proj)? {
-        println!("{:5}\t{}", lines.len(), header);
-    }
-    Ok(())
-}
-
-pub fn context_view() -> Result<()> {
-    let grouped = group_by_regex(&re_ctx)?;
+    let grouped = group_by_regex(&re_proj)?;
     let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
     keys.sort();
-    let max = keys.iter().map(|x| x.len()).max().expect("Couldn't get longest key");
     for header in keys {
-        for (i, line) in &grouped[&header] {
-            println!("{:width$}\t{:5}\t{}", header, i, &line[2..], width=max);
+        for lines in grouped.get(&header) {
+            println!("{:5}\t{}", lines.len(), header);
         }
     }
     Ok(())
@@ -119,15 +103,6 @@ pub fn project_view() -> Result<()> {
     for header in keys {
         for (i, line) in &grouped[&header] {
             println!("{:width$}\t{:5}\t{}", header, i, &line[2..], width=max);
-        }
-    }
-    Ok(())
-}
-
-pub fn contextless() -> Result<()> {
-    for (i, line) in utility::get_todos(true)? {
-        if !re_ctx.is_match(&line) {
-            println!("{:5}\t{}", i, &line[2..]);
         }
     }
     Ok(())
