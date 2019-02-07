@@ -3,6 +3,8 @@ extern crate chrono;
 extern crate lazy_static;
 extern crate regex;
 
+use std::env;
+
 mod modify;
 mod utility;
 mod view;
@@ -14,7 +16,7 @@ Filters literal text, not regex.
 Modifying:
     a TEXT...               Add a task (add)
     rm IDX                  Remove item IDX
-    do IDX                  Move item IDX to $DONEFILE
+    do IDX                  Move item IDX to $DONEFILE (done)
     undo IDX                Move item IDX from $DONEFILE into $TODOFILE
     up IDX                  Upgrade task IDX to a priority
     down IDX                Downgrade task IDX to a normal task
@@ -26,11 +28,11 @@ Modifying:
 Viewing:
     ls               List tasks (optionally filtered)
     lsp              List prioritised tasks (optionally filtered)
+    lsd              List done tasks (listdone)
     p                List all unique projects '#PROJECT' (projects)
     pv               List all tasks, grouped by project (projectview)
     pl               List all tasks WITHOUT a project (projectless)
     mit              PRIORITY tasks overdue, or due today
-    done             List done tasks
     due [NDAYS]      Show overdue, due today, and tasks due in NDAYS
     nd               Show all todos without a due date (nodate)
 
@@ -41,16 +43,17 @@ Other:
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
 fn main() -> Result<()> {
-    let (cmd, positives, negatives, args) = utility::parse_args();
+    let cmd: String = env::args().skip(1).take(1).collect();
+    let args: Vec<String> = env::args().skip(2).collect();
 
-    let todos = utility::filter_todos(&utility::get_todos(true)?, &positives, &negatives);
-    let dones = utility::filter_todos(&utility::get_done()?, &positives, &negatives);
+    let todos = utility::get_todos(true)?;
+    let dones = utility::get_done()?;
 
     let res = match &cmd[..] {
         // ========== Modification
         "a" | "add" => modify::add(&args),
         "rm" => modify::remove(&args),
-        "do" => modify::do_task(&args),
+        "do" | "done" => modify::do_task(&args),
         "undo" => modify::undo(&args),
         "app" | "append" => modify::append(&args),
         "up" | "upgrade" => modify::upgrade(&args),
@@ -62,8 +65,8 @@ fn main() -> Result<()> {
         "today" => modify::today(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&todos, &args),
-        "lsp" => view::list_priorities(&todos),
-        "done" => view::done(&dones),
+        "lsp" => view::list_priorities(&todos, &args),
+        "lsd" | "listdone" => view::done(&dones, &args),
         "p" | "projects" => view::projects(&todos),
         "pl" | "projectless" => view::projectless(&todos),
         "due" => view::due(&todos),

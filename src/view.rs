@@ -15,9 +15,8 @@ lazy_static! {
     static ref re_pri: Regex = Regex::new(r"^- ! (.*)").expect("Couldn't compile priority regex");
 }
 
-
-
 pub fn list(todos: &[(usize, String)], args: &[String]) -> Result<()> {
+    let (todos, args) = utility::filter_todos(&todos, &args);
     let query = match args.get(0) {
         Some(q) => q,
         None => "",
@@ -31,8 +30,9 @@ pub fn list(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn list_priorities(todos: &[(usize, String)]) -> Result<()> {
-    for (_, lines) in group_by_regex(todos, &re_pri)? {
+pub fn list_priorities(todos: &[(usize, String)], args: &[String]) -> Result<()> {
+    let (todos, _) = utility::filter_todos(&todos, &args);
+    for (_, lines) in group_by_regex(&todos, &re_pri)? {
         for (i, line) in lines {
             println!("{:5}\t{}", i, &line[2..]);
         }
@@ -40,7 +40,8 @@ pub fn list_priorities(todos: &[(usize, String)]) -> Result<()> {
     Ok(())
 }
 
-pub fn done(todos: &[(usize, String)]) -> Result<()> {
+pub fn done(todos: &[(usize, String)], args: &[String]) -> Result<()> {
+    let (todos, _) = utility::filter_todos(&todos, &args);
     for (i, line) in todos {
         println!("{:5}\t{}", i, &line[2..]);
     }
