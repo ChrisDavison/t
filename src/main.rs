@@ -21,7 +21,7 @@ Modifying:
     up IDX                  Upgrade task IDX to a priority
     down IDX                Downgrade task IDX to a normal task
     app IDX TEXT...         Append TEXT... to task IDX (append)
-    repeat IDX              copy task IDX to done, but leave in tasks
+    repeat IDX [DATE]       Mark task IDX as done, and re-enter in todos (optional due date)
     schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
     today IDX               Schedule task IDX for today
 

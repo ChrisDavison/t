@@ -64,19 +64,27 @@ pub fn remove(args: &[String]) -> Result<()> {
 
 pub fn repeat_task(args: &[String]) -> Result<()> {
     if args.is_empty() {
-        return Err(From::from("usage: t repeat IDX"));
+        return Err(From::from("usage: t repeat IDX [DATE]"));
     }
-    let todos = utility::get_todos(false)?;
+    let mut todos = utility::get_todos(false)?;
     let mut dones = utility::get_done()?;
     let idx: usize = args[0].parse()?;
     if idx >= todos.len() {
         return Err(From::from("IDX must be within range of num todos"));
     }
+    let undated = view::re_due.replace(&todos[idx].1, "").to_string();
+    let new_task = match args.get(1) {
+        Some(i) => format!("{} due:{}", undated, i),
+        None => undated
+    };
     let dated_task = format!("{} done:{}", todos[idx].1, utility::get_formatted_date());
     println!("REPEATING {}", &todos[idx].1[2..]);
     dones.push((todos[idx].0, dated_task));
+    todos.remove(idx);
+    todos.push((idx, new_task));
 
-    utility::write_enumerated_dones(&dones)
+    utility::write_enumerated_dones(&dones)?;
+    utility::write_enumerated_todos(&todos)
 }
 
 pub fn do_task(args: &[String]) -> Result<()> {
