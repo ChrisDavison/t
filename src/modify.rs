@@ -14,7 +14,7 @@ pub fn add(args: &[String]) -> Result<()> {
 pub fn append(args: &[String]) -> Result<()> {
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
-        None => return Err(From::from("Must pass IDX")),
+        None => return Err(From::from("usage: t app IDX TEXT...")),
     };
     let mut todos = utility::get_todos(false)?;
     if todos.len() < idx {
@@ -33,7 +33,7 @@ pub fn append(args: &[String]) -> Result<()> {
 pub fn today(args: &[String]) -> Result<()> {
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
-        None => return Err(From::from("Must pass IDX")),
+        None => return Err(From::from("usage: t today IDX")),
     };
     let mut todos = utility::get_todos(false)?;
     if todos.len() < idx {
@@ -64,7 +64,7 @@ pub fn remove(args: &[String]) -> Result<()> {
 
 pub fn repeat_task(args: &[String]) -> Result<()> {
     if args.is_empty() {
-        return Err(From::from("usage: t do IDX"));
+        return Err(From::from("usage: t repeat IDX"));
     }
     let todos = utility::get_todos(false)?;
     let mut dones = utility::get_done()?;
@@ -123,7 +123,7 @@ pub fn undo(args: &[String]) -> Result<()> {
 pub fn upgrade(args: &[String]) -> Result<()> {
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
-        None => return Err(From::from("Must pass IDX")),
+        None => return Err(From::from("usage: t up IDX")),
     };
     let mut todos = utility::get_todos(false)?;
     if todos.len() < idx {
@@ -144,7 +144,7 @@ pub fn upgrade(args: &[String]) -> Result<()> {
 pub fn downgrade(args: &[String]) -> Result<()> {
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
-        None => return Err(From::from("Must pass IDX")),
+        None => return Err(From::from("usage: t down IDX")),
     };
     let mut todos = utility::get_todos(false)?;
     if todos.len() < idx {
@@ -171,7 +171,7 @@ pub fn clear_done() -> Result<()> {
 pub fn schedule(args: &[String]) -> Result<()> {
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
-        None => return Err(From::from("Must pass IDX")),
+        None => return Err(From::from("usage: t schedule IDX DATE")),
     };
     let date: String = match args.get(1) {
         Some(i) => i.to_owned(),
@@ -198,7 +198,10 @@ pub fn schedule(args: &[String]) -> Result<()> {
 
 pub fn unschedule(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos(false)?;
-    let idx: usize = args[0].parse()?;
+    let idx: usize = match args.get(0) {
+        Some(i) => i.parse()?,
+        None => return Err(From::from("usage: t unschedule IDX")),
+    };
     let (_, todo) = &todos[idx];
     println!("UNSCHEDULED {}", &todo[2..]);
     todos[idx] = (idx, view::re_due.replace(&todo, "").to_string());
