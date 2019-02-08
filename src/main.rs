@@ -23,6 +23,7 @@ Modifying:
     app IDX TEXT...         Append TEXT... to task IDX (append)
     repeat IDX [DATE]       Mark task IDX as done, and re-enter in todos (optional due date)
     schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
+    unschedule IDX          Remove due date from task IDX.
     today IDX               Schedule task IDX for today
 
 Viewing:
@@ -56,29 +57,28 @@ fn main() -> Result<()> {
         "do" | "done" => modify::do_task(&args),
         "undo" => modify::undo(&args),
         "app" | "append" => modify::append(&args),
-        "up" | "upgrade" => modify::upgrade(&args),
-        "down" | "downgrade" => modify::downgrade(&args),
-        "cleardone" => modify::clear_done(),
+        "up" | "upgrade" => modify::prioritise::upgrade(&args),
+        "down" | "downgrade" => modify::prioritise::downgrade(&args),
         "repeat" => modify::repeat_task(&args),
-        "schedule" => modify::schedule(&args),
-        "unschedule" => modify::unschedule(&args),
-        "today" => modify::today(&args),
+        "schedule" => modify::schedule::schedule(&args),
+        "unschedule" => modify::schedule::unschedule(&args),
+        "today" => modify::schedule::today(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&todos, &args),
         "lsp" => view::list_priorities(&todos, &args),
         "lsd" | "listdone" => view::done(&dones, &args),
-        "p" | "projects" => view::projects(&todos),
-        "pl" | "projectless" => view::projectless(&todos),
-        "due" => view::due(&todos),
-        "nd" | "nodate" => view::no_date(&todos),
-        "pv" | "projectview" => view::project_view(&todos),
-        "mit" | "important" => view::mit(&todos),
+        "p" | "projects" => view::project::projects(&todos, &args),
+        "pl" | "projectless" => view::project::projectless(&todos, &args),
+        "pv" | "projectview" => view::project::project_view(&todos, &args),
+        "due" => view::dated::due(&todos, &args),
+        "nd" | "nodate" => view::dated::no_date(&todos, &args),
+        "mit" | "important" => view::dated::mit(&todos, &args),
         // ========== Utility
         "filename" => utility::print_todo_filename(),
         "help" => {
             println!("{}", USAGE);
             Ok(())
-        },
+        }
         _ => {
             if !cmd.is_empty() {
                 println!(
