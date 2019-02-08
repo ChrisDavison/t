@@ -140,7 +140,8 @@ pub mod dated {
         keys.reverse();
         for days in keys {
             for (date, i, line) in &map[&days] {
-                println!("{:10}\t{:5}\t{}", &date[4..], i, &line[2..]);
+                let nodate = re_due.replace(&line[2..], "");
+                println!("{:10}\t{:5}\t{}", &date[4..], i, nodate);
             }
         }
         Ok(())
@@ -180,7 +181,8 @@ pub mod dated {
                 if !line.starts_with("- ! ") {
                     continue;
                 }
-                println!("{}\t{:-5}\t{}", &date[4..], i, &line[4..]);
+                let nodate = re_due.replace(&line[4..], "");
+                println!("{}\t{:-5}\t{}", &date[4..], i, nodate);
             }
         }
         Ok(())
