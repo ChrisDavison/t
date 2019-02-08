@@ -39,36 +39,42 @@ fn get_datediff(capture: &Captures) -> Result<i64> {
     Ok((now - task_date).num_days())
 }
 
+fn display_enumerated_todos(todos: &[(usize, String)]) {
+    for (i, line) in todos {
+        println!("{:5} | {}", i, &line[2..]);
+    }
+}
+
 pub fn list(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     let (todos, args) = utility::filter_todos(&todos, &args);
     let query = match args.get(0) {
         Some(q) => q,
         None => "",
     };
-    let filtered = todos
+    let filtered: Vec<(usize, String)> = todos
         .iter()
-        .filter(|(_, x)| utility::case_insensitive_match(x, query));
-    for (i, line) in filtered {
-        println!("{:5}\t{}", i, &line[2..]);
-    }
+        .filter(|(_, x)| utility::case_insensitive_match(x, query))
+        .map(|(i, x)| (*i, x.to_string()))
+        .collect();
+    display_enumerated_todos(&filtered);
     Ok(())
 }
 
 pub fn list_priorities(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     let (todos, _) = utility::filter_todos(&todos, &args);
     for (_, lines) in group_by_regex(&todos, &re_pri)? {
-        for (i, line) in lines {
-            println!("{:5}\t{}", i, &line[2..]);
-        }
+        let lines: Vec<(usize, String)> = lines
+            .iter()
+            .map(|(i, x)| (*i, x[2..].to_string()))
+            .collect();
+        display_enumerated_todos(&lines);
     }
     Ok(())
 }
 
 pub fn done(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     let (todos, _) = utility::filter_todos(&todos, &args);
-    for (i, line) in todos {
-        println!("{:5}\t{}", i, &line[2..]);
-    }
+    display_enumerated_todos(&todos);
     Ok(())
 }
 

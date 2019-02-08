@@ -5,7 +5,7 @@ type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 pub fn add(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos(false)?;
     let msg = format!("- {}", args.join(" "));
-    println!("CREATED {}", &msg[2..]);
+    println!("CREATED {:5}\t{}", todos.len(), &msg[2..]);
     todos.push((todos.len(), msg));
     utility::write_enumerated_todos(&todos)
 }
