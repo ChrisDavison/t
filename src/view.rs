@@ -147,7 +147,7 @@ pub mod dated {
         for days in keys {
             for (date, i, line) in &map[&days] {
                 let nodate = re_due.replace(&line[2..], "");
-                println!("{:10}\t{:5}\t{}", &date[4..], i, nodate);
+                println!("{:10} | {:3} | {}", &date[4..], i, nodate);
             }
         }
         Ok(())
@@ -157,7 +157,7 @@ pub mod dated {
         let (todos, _args) = utility::filter_todos(&todos, &args);
         for (i, line) in todos {
             if !re_due.is_match(&line) {
-                println!("{:5}\t{}", i, &line[2..]);
+                println!("{:3}\t{}", i, &line[2..]);
             }
         }
         Ok(())
@@ -188,7 +188,7 @@ pub mod dated {
                     continue;
                 }
                 let nodate = re_due.replace(&line[4..], "");
-                println!("{}\t{:-5}\t{}", &date[4..], i, nodate);
+                println!("{} | {:3} | {}", &date[4..], i, nodate);
             }
         }
         Ok(())
