@@ -11,34 +11,35 @@ mod view;
 
 const USAGE: &str = "usage: t <CMD> [+filter...] [-filter...] [ARGS...]
 
-Filters literal text, not regex.
+Filters will either SHOW filter (+) and/or HIDE filter (-).
 
-Modifying:
+COMMANDS:
     a TEXT...               Add a task (add)
+    app IDX TEXT...         Append TEXT... to task IDX (append)
+
     rm IDX                  Remove item IDX
     do IDX                  Move item IDX to $DONEFILE (done)
     undo IDX                Move item IDX from $DONEFILE into $TODOFILE
+
     up IDX                  Upgrade task IDX to a priority
     down IDX                Downgrade task IDX to a normal task
-    app IDX TEXT...         Append TEXT... to task IDX (append)
+
     repeat IDX [DATE]       Mark task IDX as done, and re-enter in todos (optional due date)
     schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
     unschedule IDX          Remove due date from task IDX.
     today IDX               Schedule task IDX for today
 
-Viewing:
-    ls               List tasks (optionally filtered)
-    lsp              List prioritised tasks (optionally filtered)
-    lsd              List done tasks (listdone)
-    p                List all unique projects '#PROJECT' (projects)
-    pv               List all tasks, grouped by project (projectview)
-    pl               List all tasks WITHOUT a project (projectless)
-    mit              PRIORITY tasks overdue, or due today
-    due [NDAYS]      Show overdue, due today, and tasks due in NDAYS
-    nd               Show all todos without a due date (nodate)
+    ls                      Show tasks (optionally filtered)
+    lsp                     Show prioritised tasks (optionally filtered)
+    lsd                     Show done tasks (listdone)
+    p                       Show all unique projects '#PROJECT' (projects)
+    pv                      Show all tasks, grouped by project (projectview)
+    pl                      Show all tasks WITHOUT a project (projectless)
+    mit                     Show overdue, or due today, prioritised tasks
+    due [NDAYS]             Show overdue, due today, and tasks due in NDAYS
+    nd                      Show all todos without a due date (nodate)
 
-Other:
-    help             Display this message
+    help                    Display this message
 ";
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
@@ -75,18 +76,9 @@ fn main() -> Result<()> {
         "mit" | "important" => view::dated::mit(&todos, &args),
         // ========== Utility
         "filename" => utility::print_todo_filename(),
-        "help" => {
+        _ => {
             println!("{}", USAGE);
             Ok(())
-        }
-        _ => {
-            if !cmd.is_empty() {
-                println!(
-                    "Command `{}` unknown.  Defaulting to list (see help or shorthelp)\n",
-                    cmd
-                );
-            }
-            view::list(&todos, &args)
         }
     };
 
