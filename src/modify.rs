@@ -165,6 +165,9 @@ pub mod schedule {
             None => return Err(From::from("usage: t unschedule IDX")),
         };
         let (_, todo) = &todos[idx];
+        if !view::re_due.is_match(todo) {
+            return Ok(());
+        }
         println!("UNSCHEDULED {}", &todo[2..]);
         todos[idx] = (idx, view::re_due.replace(&todo, "").to_string());
         utility::write_enumerated_todos(&todos)
