@@ -2,20 +2,32 @@ use std::env;
 use std::fs;
 use std::io::Read;
 
+use super::view;
+
 use chrono::{DateTime, Utc};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
 pub fn write_enumerated_todos(todos: &[(usize, String)]) -> Result<()> {
     let todofile = env::var("TODOFILE")?;
-    let todos: String = todos.iter().map(|(_, x)| format!("{}\n", x)).collect();
+    let todos: String = todos.iter()
+        .map(|(_, x)| {
+            let msg = format!("{}\n", x);
+            view::re_spc.replace(&msg, " ").to_string()
+        })
+        .collect();
     fs::write(todofile, todos)?;
     Ok(())
 }
 
 pub fn write_enumerated_dones(dones: &[(usize, String)]) -> Result<()> {
     let filename = env::var("DONEFILE")?;
-    let dones: String = dones.iter().map(|(_, x)| format!("{}\n", x)).collect();
+    let dones: String = dones.iter()
+        .map(|(_, x)| {
+            let msg = format!("{}\n", x);
+            view::re_spc.replace(&msg, " ").to_string()
+        })
+        .collect();
     fs::write(filename, dones)?;
     Ok(())
 }

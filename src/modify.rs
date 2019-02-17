@@ -2,6 +2,8 @@ use super::{utility, view};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
+lazy_static! {}
+
 pub fn add(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos(false)?;
     let msg = format!("- {}", args.join(" "));
