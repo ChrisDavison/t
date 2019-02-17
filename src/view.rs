@@ -13,7 +13,7 @@ lazy_static! {
     pub static ref re_due: Regex =
         Regex::new(r"due:(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
     static ref re_pri: Regex = Regex::new(r"^- ! (.*)").expect("Couldn't compile priority regex");
-    pub static ref re_spc: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
+    pub static ref re_spc: Regex = Regex::new(r"\s\s+|\s+$").expect("Couldn't compile space regex");
 }
 
 fn group_by_regex(todos: &[(usize, String)], r: &Regex) -> Result<GroupedTasks> {
