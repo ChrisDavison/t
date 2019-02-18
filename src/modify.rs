@@ -45,7 +45,7 @@ pub fn prepend(args: &[String]) -> Result<()> {
     }
     let msg: String = args.iter().skip(1).cloned().collect();
     let (_i, todo) = &todos[idx];
-    let new = if todo.starts_with("!") {
+    let new = if todo.starts_with("- !") {
         format!("- ! {} {}", msg, &todos[idx].1[4..])
     } else {
         format!("- {} {}", msg, &todos[idx].1[2..])
