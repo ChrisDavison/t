@@ -32,9 +32,6 @@ COMMANDS:
     ls                      Show tasks (optionally filtered)
     lsp                     Show prioritised tasks (optionally filtered)
     lsd                     Show done tasks (listdone)
-    p                       Show all unique projects '#PROJECT' (projects)
-    pv                      Show all tasks, grouped by project (projectview)
-    pl                      Show all tasks WITHOUT a project (projectless)
     mit                     Show overdue, or due today, prioritised tasks
     due [NDAYS]             Show overdue, due today, and tasks due in NDAYS
     nd                      Show all todos without a due date (nodate)
@@ -68,9 +65,6 @@ fn main() -> Result<()> {
         "ls" | "list" => view::list(&todos, &args),
         "lsp" => view::list_priorities(&todos, &args),
         "lsd" | "listdone" => view::done(&dones, &args),
-        "p" | "projects" => view::project::projects(&todos, &args),
-        "pl" | "projectless" => view::project::projectless(&todos, &args),
-        "pv" | "projectview" => view::project::project_view(&todos, &args),
         "due" => view::dated::due(&todos, &args),
         "nd" | "nodate" => view::dated::no_date(&todos, &args),
         "mit" | "important" => view::dated::mit(&todos, &args),

@@ -31,7 +31,7 @@ fn group_by_regex(todos: &[(usize, String)], r: &Regex) -> Result<GroupedTasks> 
     Ok(map)
 }
 
-fn get_datediff(capture: &Captures) -> Result<i64> {
+pub fn get_datediff(capture: &Captures) -> Result<i64> {
     let now: Date<Utc> = Utc::now().date();
     let y = capture[1].parse()?;
     let m = capture[2].parse()?;
@@ -42,7 +42,7 @@ fn get_datediff(capture: &Captures) -> Result<i64> {
 
 fn display_enumerated_todos(todos: &[(usize, String)]) {
     for (i, line) in todos {
-        println!("{:5} | {}", i, &line[2..]);
+        println!("{:5} {}", i, &line[2..]);
     }
 }
 
@@ -79,52 +79,6 @@ pub fn done(todos: &[(usize, String)], args: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub mod project {
-    use super::*;
-
-    pub fn projects(todos: &[(usize, String)], args: &[String]) -> Result<()> {
-        let (todos, _) = utility::filter_todos(&todos, &args);
-        println!("{} tasks", todos.len());
-        let grouped = group_by_regex(&todos, &re_proj)?;
-        let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
-        keys.sort();
-        for header in keys {
-            if let Some(lines) = grouped.get(&header) {
-                println!("{:5}\t{}", lines.len(), header);
-            }
-        }
-        Ok(())
-    }
-
-    pub fn project_view(todos: &[(usize, String)], args: &[String]) -> Result<()> {
-        let (todos, _) = utility::filter_todos(&todos, &args);
-        let grouped = group_by_regex(&todos, &re_proj)?;
-        let mut keys: Vec<String> = grouped.keys().map(|x| x.to_owned()).collect();
-        keys.sort();
-        let max = keys
-            .iter()
-            .map(|x| x.len())
-            .max()
-            .expect("Couldn't get longest key");
-        for header in keys {
-            for (i, line) in &grouped[&header] {
-                println!("{:width$}\t{:5}\t{}", header, i, &line[2..], width = max);
-            }
-        }
-        Ok(())
-    }
-
-    pub fn projectless(todos: &[(usize, String)], args: &[String]) -> Result<()> {
-        let (todos, _) = utility::filter_todos(&todos, &args);
-        for (i, line) in todos {
-            if !re_proj.is_match(&line) {
-                println!("{:5}\t{}", i, &line[2..]);
-            }
-        }
-        Ok(())
-    }
-}
-
 pub mod dated {
     use super::*;
 
@@ -148,7 +102,7 @@ pub mod dated {
         for days in keys {
             for (date, i, line) in &map[&days] {
                 let nodate = re_due.replace(&line[2..], "");
-                println!("{:10} | {:3} | {}", &date[4..], i, nodate);
+                println!("{:10} ~ {:3} {}", &date[4..], i, nodate);
             }
         }
         Ok(())
@@ -158,7 +112,7 @@ pub mod dated {
         let (todos, _args) = utility::filter_todos(&todos, &args);
         for (i, line) in todos {
             if !re_due.is_match(&line) {
-                println!("{:3}\t{}", i, &line[2..]);
+                println!("{:3} {}", i, &line[2..]);
             }
         }
         Ok(())
@@ -189,7 +143,7 @@ pub mod dated {
                     continue;
                 }
                 let nodate = re_due.replace(&line[4..], "");
-                println!("{} | {:3} | {}", &date[4..], i, nodate);
+                println!("{} ~ {:3} {}", &date[4..], i, nodate);
             }
         }
         Ok(())
