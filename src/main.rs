@@ -24,7 +24,6 @@ COMMANDS:
     up IDX                  Upgrade task IDX to a priority
     down IDX                Downgrade task IDX to a normal task
 
-    repeat IDX [DATE]       Mark task IDX as done, and re-enter in todos (optional due date)
     schedule IDX [DATE]     Schedule task IDX.  If no date, will prompt.
     unschedule IDX          Remove due date from task IDX.
     today IDX               Schedule task IDX for today
@@ -45,7 +44,7 @@ fn main() -> Result<()> {
     let cmd: String = env::args().skip(1).take(1).collect();
     let args: Vec<String> = env::args().skip(2).collect();
 
-    let todos = utility::get_todos(true)?;
+    let todos = utility::get_todos()?;
     let dones = utility::get_done()?;
 
     let res = match &cmd[..] {
@@ -57,7 +56,6 @@ fn main() -> Result<()> {
         "app" | "append" => modify::append(&args),
         "up" | "upgrade" => modify::prioritise::upgrade(&args),
         "down" | "downgrade" => modify::prioritise::downgrade(&args),
-        "repeat" => modify::repeat_task(&args),
         "schedule" => modify::schedule::schedule(&args),
         "unschedule" => modify::schedule::unschedule(&args),
         "today" => modify::schedule::today(&args),

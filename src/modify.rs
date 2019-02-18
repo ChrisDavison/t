@@ -5,7 +5,7 @@ type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 lazy_static! {}
 
 pub fn add(args: &[String]) -> Result<()> {
-    let mut todos = utility::get_todos(false)?;
+    let mut todos = utility::get_todos()?;
     let msg = format!("- {}", args.join(" "));
     println!("CREATED {:5}\t{}", todos.len(), &msg[2..]);
     todos.push((todos.len(), msg));
@@ -17,7 +17,7 @@ pub fn append(args: &[String]) -> Result<()> {
         Some(i) => i.parse()?,
         None => return Err(From::from("usage: t app IDX TEXT...")),
     };
-    let mut todos = utility::get_todos(false)?;
+    let mut todos = utility::get_todos()?;
     if todos.len() < idx {
         return Err(From::from(format!(
             "IDX must be < {} (number of tasks)",
@@ -31,11 +31,35 @@ pub fn append(args: &[String]) -> Result<()> {
     utility::write_enumerated_todos(&todos)
 }
 
+pub fn prepend(args: &[String]) -> Result<()> {
+    let idx: usize = match args.get(0) {
+        Some(i) => i.parse()?,
+        None => return Err(From::from("usage: t app IDX TEXT...")),
+    };
+    let mut todos = utility::get_todos()?;
+    if todos.len() < idx {
+        return Err(From::from(format!(
+            "IDX must be < {} (number of tasks)",
+            todos.len()
+        )));
+    }
+    let msg: String = args.iter().skip(1).cloned().collect();
+    let (_i, todo) = &todos[idx];
+    let new = if todo.starts_with("!") {
+        format!("- ! {} {}", msg, &todos[idx].1[4..])
+    } else {
+        format!("- {} {}", msg, &todos[idx].1[2..])
+    };
+    println!("PREPENDED {}", &new[2..]);
+    todos[idx] = (todos[idx].0, new);
+    utility::write_enumerated_todos(&todos)
+}
+
 pub fn remove(args: &[String]) -> Result<()> {
     if args.is_empty() {
         return Err(From::from("usage: t rm IDX"));
     }
-    let mut todos = utility::get_todos(false)?;
+    let mut todos = utility::get_todos()?;
     let idx: usize = args[0].parse()?;
     if idx >= todos.len() {
         return Err(From::from("IDX must be within range of num todos"));
@@ -45,36 +69,11 @@ pub fn remove(args: &[String]) -> Result<()> {
     utility::write_enumerated_todos(&todos)
 }
 
-pub fn repeat_task(args: &[String]) -> Result<()> {
-    if args.is_empty() {
-        return Err(From::from("usage: t repeat IDX [DATE]"));
-    }
-    let mut todos = utility::get_todos(false)?;
-    let mut dones = utility::get_done()?;
-    let idx: usize = args[0].parse()?;
-    if idx >= todos.len() {
-        return Err(From::from("IDX must be within range of num todos"));
-    }
-    let undated = view::re_due.replace(&todos[idx].1, "").to_string();
-    let new_task = match args.get(1) {
-        Some(i) => format!("{} due:{}", undated, i),
-        None => undated,
-    };
-    let dated_task = format!("{} done:{}", todos[idx].1, utility::get_formatted_date());
-    println!("REPEATING {}", &todos[idx].1[2..]);
-    dones.push((todos[idx].0, dated_task));
-    todos.remove(idx);
-    todos.push((idx, new_task));
-
-    utility::write_enumerated_dones(&dones)?;
-    utility::write_enumerated_todos(&todos)
-}
-
 pub fn do_task(args: &[String]) -> Result<()> {
     if args.is_empty() {
         return Err(From::from("usage: t do IDX"));
     }
-    let mut todos = utility::get_todos(false)?;
+    let mut todos = utility::get_todos()?;
     let mut dones = utility::get_done()?;
     let idx: usize = args[0].parse()?;
     if idx >= todos.len() {
@@ -90,7 +89,7 @@ pub fn do_task(args: &[String]) -> Result<()> {
 }
 
 pub fn undo(args: &[String]) -> Result<()> {
-    let mut todos = utility::get_todos(false)?;
+    let mut todos = utility::get_todos()?;
     let mut dones = utility::get_done()?;
     let mut msg = "UNDONE";
     let idx = if args.is_empty() {
@@ -119,7 +118,7 @@ pub mod prioritise {
             Some(i) => i.parse()?,
             None => return Err(From::from("usage: t up IDX")),
         };
-        let mut todos = utility::get_todos(false)?;
+        let mut todos = utility::get_todos()?;
         if todos.len() < idx {
             return Err(From::from(format!(
                 "IDX must be < {} (number of tasks)",
@@ -140,7 +139,7 @@ pub mod prioritise {
             Some(i) => i.parse()?,
             None => return Err(From::from("usage: t down IDX")),
         };
-        let mut todos = utility::get_todos(false)?;
+        let mut todos = utility::get_todos()?;
         if todos.len() < idx {
             return Err(From::from(format!(
                 "IDX must be < {} (number of tasks)",
@@ -161,17 +160,20 @@ pub mod schedule {
     use std::io::{self, Write};
 
     pub fn unschedule(args: &[String]) -> Result<()> {
-        let mut todos = utility::get_todos(false)?;
+        let mut todos = utility::get_todos()?;
         let idx: usize = match args.get(0) {
             Some(i) => i.parse()?,
             None => return Err(From::from("usage: t unschedule IDX")),
         };
+        if idx >= todos.len() {
+            return Err(From::from("Index out of bounds"));
+        }
         let (_, todo) = &todos[idx];
-        if !view::re_due.is_match(todo) {
+        if !view::re_date.is_match(todo) {
             return Ok(());
         }
         println!("UNSCHEDULED {}", &todo[2..]);
-        todos[idx] = (idx, view::re_due.replace(&todo, "").to_string());
+        todos[idx] = (idx, view::re_date.replace(&todo, "").to_string());
         utility::write_enumerated_todos(&todos)
     }
 
@@ -180,9 +182,9 @@ pub mod schedule {
             Some(i) => i.to_owned(),
             None => return Err(From::from("usage: t today IDX")),
         };
-        let t_str = format!("due:{}", utility::get_formatted_date());
+        let t_str = format!("{}", utility::get_formatted_date());
         unschedule(&[idx.clone()])?;
-        append(&[idx, t_str])
+        prepend(&[idx, t_str])
     }
 
     pub fn schedule(args: &[String]) -> Result<()> {
@@ -200,8 +202,8 @@ pub mod schedule {
                 date
             }
         };
-        let t_str = format!("due:{}", date);
+        let t_str = format!("{}", date);
         unschedule(&[idx.clone()])?;
-        append(&[idx, t_str])
+        prepend(&[idx, t_str])
     }
 }

@@ -10,8 +10,8 @@ type GroupedTasks = HashMap<String, Vec<(usize, String)>>;
 
 lazy_static! {
     static ref re_proj: Regex = Regex::new(r"\+(.+?)\b").expect("Couldn't compile project regex");
-    pub static ref re_due: Regex =
-        Regex::new(r"due:(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
+    pub static ref re_date: Regex =
+        Regex::new(r"(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
     static ref re_pri: Regex = Regex::new(r"^- ! (.*)").expect("Couldn't compile priority regex");
     pub static ref re_spc: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
 }
@@ -42,7 +42,7 @@ pub fn get_datediff(capture: &Captures) -> Result<i64> {
 
 fn display_enumerated_todos(todos: &[(usize, String)]) {
     for (i, line) in todos {
-        println!("{:5} {}", i, &line[2..]);
+        println!("{:5}. {}", i, &line[2..]);
     }
 }
 
@@ -82,27 +82,53 @@ pub fn done(todos: &[(usize, String)], args: &[String]) -> Result<()> {
 pub mod dated {
     use super::*;
 
-    pub fn due(todos: &[(usize, String)], args: &[String]) -> Result<()> {
-        let mut map: HashMap<i64, Vec<(String, usize, String)>> = HashMap::new();
-        let (todos, _args) = utility::filter_todos(&todos, &args);
+    fn group_by_days_overdue(
+        todos: &[(usize, String)],
+        ndays: i64,
+    ) -> Result<HashMap<i64, Vec<(usize, String)>>> {
+        let mut map: HashMap<i64, Vec<(usize, String)>> = HashMap::new();
         for (i, line) in todos {
-            for cap in re_due.captures_iter(&line) {
+            for cap in re_date.captures_iter(&line) {
                 let diff = get_datediff(&cap)?;
+                if diff < ndays {
+                    continue;
+                }
                 if let Some(x) = map.get_mut(&diff) {
-                    (*x).push((cap[0].to_string(), i, line.clone()));
+                    (*x).push((*i, line.clone()));
                 } else {
-                    map.insert(diff, vec![(cap[0].to_string(), i, line.clone())]);
+                    map.insert(diff, vec![(*i, line.clone())]);
                 }
             }
         }
+        Ok(map)
+    }
 
+    pub fn due(todos: &[(usize, String)], args: &[String]) -> Result<()> {
+        let (todos, _args) = utility::filter_todos(&todos, &args);
+        let map = group_by_days_overdue(&todos, 0)?;
         let mut keys: Vec<i64> = map.keys().cloned().collect();
         keys.sort();
         keys.reverse();
         for days in keys {
-            for (date, i, line) in &map[&days] {
-                let nodate = re_due.replace(&line[2..], "");
-                println!("{:10} ~ {:3} {}", &date[4..], i, nodate);
+            for (i, line) in &map[&days] {
+                println!("{:3}. {}", i, &line[2..]);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn mit(todos: &[(usize, String)], args: &[String]) -> Result<()> {
+        let (todos, _args) = utility::filter_todos(&todos, &args);
+        let map = group_by_days_overdue(&todos, 0)?;
+        let mut keys: Vec<i64> = map.keys().cloned().collect();
+        keys.sort();
+        keys.reverse();
+        for days in keys {
+            for (i, line) in &map[&days] {
+                if !line.starts_with("- ! ") {
+                    continue;
+                }
+                println!("{:3}. {}", i, &line[2..]);
             }
         }
         Ok(())
@@ -111,42 +137,10 @@ pub mod dated {
     pub fn no_date(todos: &[(usize, String)], args: &[String]) -> Result<()> {
         let (todos, _args) = utility::filter_todos(&todos, &args);
         for (i, line) in todos {
-            if !re_due.is_match(&line) {
-                println!("{:3} {}", i, &line[2..]);
+            if !re_date.is_match(&line) {
+                println!("{:3}. {}", i, &line[2..]);
             }
         }
         Ok(())
     }
-
-    pub fn mit(todos: &[(usize, String)], args: &[String]) -> Result<()> {
-        let mut map: HashMap<i64, Vec<(String, usize, String)>> = HashMap::new();
-        let (todos, _args) = utility::filter_todos(&todos, &args);
-        for (i, line) in todos {
-            for cap in re_due.captures_iter(&line) {
-                let diff = get_datediff(&cap)?;
-                if diff < 0 {
-                    continue;
-                }
-                if let Some(x) = map.get_mut(&diff) {
-                    (*x).push((cap[0].to_string(), i, line.clone()));
-                } else {
-                    map.insert(diff, vec![(cap[0].to_string(), i, line.clone())]);
-                }
-            }
-        }
-        let mut keys: Vec<i64> = map.keys().cloned().collect();
-        keys.sort();
-        keys.reverse();
-        for days in keys {
-            for (date, i, line) in &map[&days] {
-                if !line.starts_with("- ! ") {
-                    continue;
-                }
-                let nodate = re_due.replace(&line[4..], "");
-                println!("{} ~ {:3} {}", &date[4..], i, nodate);
-            }
-        }
-        Ok(())
-    }
-
 }

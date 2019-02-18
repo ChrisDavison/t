@@ -10,7 +10,8 @@ type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
 pub fn write_enumerated_todos(todos: &[(usize, String)]) -> Result<()> {
     let todofile = env::var("TODOFILE")?;
-    let todos: String = todos.iter()
+    let todos: String = todos
+        .iter()
         .map(|(_, x)| {
             let msg = format!("{}\n", x);
             view::re_spc.replace(&msg, " ").to_string()
@@ -22,7 +23,8 @@ pub fn write_enumerated_todos(todos: &[(usize, String)]) -> Result<()> {
 
 pub fn write_enumerated_dones(dones: &[(usize, String)]) -> Result<()> {
     let filename = env::var("DONEFILE")?;
-    let dones: String = dones.iter()
+    let dones: String = dones
+        .iter()
         .map(|(_, x)| {
             let msg = format!("{}\n", x);
             view::re_spc.replace(&msg, " ").to_string()
@@ -32,7 +34,7 @@ pub fn write_enumerated_dones(dones: &[(usize, String)]) -> Result<()> {
     Ok(())
 }
 
-pub fn get_todos(organised: bool) -> Result<Vec<(usize, String)>> {
+pub fn get_todos() -> Result<Vec<(usize, String)>> {
     let todofile = env::var("TODOFILE").expect("TODOFILE not defined");
     let mut f = std::fs::File::open(todofile)?;
     let mut contents = String::new();
@@ -42,15 +44,7 @@ pub fn get_todos(organised: bool) -> Result<Vec<(usize, String)>> {
         .filter(|x| x.starts_with("- "))
         .map(|x| x.to_owned())
         .enumerate();
-    if organised {
-        Ok(todos
-            .clone()
-            .filter(|(_, x)| x.starts_with("- !"))
-            .chain(todos.filter(|(_, x)| !x.starts_with("- !")))
-            .collect())
-    } else {
-        Ok(todos.collect())
-    }
+    Ok(todos.collect())
 }
 
 pub fn get_done() -> Result<Vec<(usize, String)>> {
@@ -78,7 +72,7 @@ pub fn get_formatted_date() -> String {
 }
 
 pub fn check_for_blank_files() -> Result<()> {
-    let todos = get_todos(false)?;
+    let todos = get_todos()?;
     if todos.is_empty() {
         println!("TODOFILE now empty");
         println!("If unexpected, revert using dropbox or git");
