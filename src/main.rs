@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     let args: Vec<String> = env::args().skip(2).collect();
 
     let todos = utility::get_todos()?;
-    let dones = utility::get_done()?;
+    let dones = utility::get_dones()?;
 
     let res = match &cmd[..] {
         // ========== Modification
@@ -54,6 +54,7 @@ fn main() -> Result<()> {
         "do" | "done" => modify::do_task(&args),
         "undo" => modify::undo(&args),
         "app" | "append" => modify::append(&args),
+        "pre" | "prepend" => modify::prepend(&args),
         "up" | "upgrade" => modify::prioritise::upgrade(&args),
         "down" | "downgrade" => modify::prioritise::downgrade(&args),
         "schedule" => modify::schedule::schedule(&args),
@@ -63,11 +64,11 @@ fn main() -> Result<()> {
         "ls" | "list" => view::list(&todos, &args),
         "lsp" => view::list_priorities(&todos, &args),
         "lsd" | "listdone" => view::done(&dones, &args),
+        // ========== Date-based views
         "due" => view::dated::due(&todos, &args),
         "nd" | "nodate" => view::dated::no_date(&todos, &args),
         "mit" | "important" => view::dated::mit(&todos, &args),
         // ========== Utility
-        "filename" => utility::print_todo_filename(),
         _ => {
             println!("{}", USAGE);
             Ok(())

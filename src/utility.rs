@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
+#[derive(Clone)]
 pub struct Todo {
     pub idx: usize,
     pub task: String,
@@ -28,7 +29,7 @@ impl fmt::Display for Todo {
     }
 }
 
-fn parse_todo(idx: usize, line: &str) -> Todo {
+pub fn parse_todo(idx: usize, line: &str) -> Todo {
     let line = &line[2..];
     let (task, priority) = if line.starts_with("! ") {
         (&line[2..], true)
@@ -48,7 +49,45 @@ fn parse_todo(idx: usize, line: &str) -> Todo {
     }
 }
 
-pub fn get_todos_vec() -> Result<Vec<Todo>> {
+pub fn write_enumerated_todos(todos: &[Todo]) -> Result<()> {
+    let todofile = env::var("TODOFILE")?;
+    let todos: String = todos
+        .iter()
+        .map(|x| {
+            let p = if x.priority { "! " } else { "" };
+            let d = if x.date != "" {
+                format!("{} ", x.date).to_string()
+            } else {
+                "".to_string()
+            };
+            let msg = format!("- {}{}{}\n", p, d, x.task);
+            view::re_spc.replace(&msg, " ").to_string()
+        })
+        .collect();
+    fs::write(todofile, todos)?;
+    Ok(())
+}
+
+pub fn write_enumerated_dones(dones: &[Todo]) -> Result<()> {
+    let filename = env::var("DONEFILE")?;
+    let dones: String = dones
+        .iter()
+        .map(|x| {
+            let p = if x.priority { "! " } else { "" };
+            let d = if x.date != "" {
+                format!("{} ", x.date).to_string()
+            } else {
+                "".to_string()
+            };
+            let msg = format!("- {}{}{}\n", p, d, x.task);
+            view::re_spc.replace(&msg, " ").to_string()
+        })
+        .collect();
+    fs::write(filename, dones)?;
+    Ok(())
+}
+
+pub fn get_todos() -> Result<Vec<Todo>> {
     let todofile = env::var("TODOFILE").expect("TODOFILE not defined");
     let mut f = std::fs::File::open(todofile)?;
     let mut contents = String::new();
@@ -61,46 +100,7 @@ pub fn get_todos_vec() -> Result<Vec<Todo>> {
     Ok(todos.collect())
 }
 
-pub fn write_enumerated_todos(todos: &[(usize, String)]) -> Result<()> {
-    let todofile = env::var("TODOFILE")?;
-    let todos: String = todos
-        .iter()
-        .map(|(_, x)| {
-            let msg = format!("{}\n", x);
-            view::re_spc.replace(&msg, " ").to_string()
-        })
-        .collect();
-    fs::write(todofile, todos)?;
-    Ok(())
-}
-
-pub fn write_enumerated_dones(dones: &[(usize, String)]) -> Result<()> {
-    let filename = env::var("DONEFILE")?;
-    let dones: String = dones
-        .iter()
-        .map(|(_, x)| {
-            let msg = format!("{}\n", x);
-            view::re_spc.replace(&msg, " ").to_string()
-        })
-        .collect();
-    fs::write(filename, dones)?;
-    Ok(())
-}
-
-pub fn get_todos() -> Result<Vec<(usize, String)>> {
-    let todofile = env::var("TODOFILE").expect("TODOFILE not defined");
-    let mut f = std::fs::File::open(todofile)?;
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)?;
-    let todos = contents
-        .lines()
-        .filter(|x| x.starts_with("- "))
-        .map(|x| x.to_owned())
-        .enumerate();
-    Ok(todos.collect())
-}
-
-pub fn get_done() -> Result<Vec<(usize, String)>> {
+pub fn get_dones() -> Result<Vec<Todo>> {
     let filename = env::var("DONEFILE").expect("DONEFILE not defined");
     let mut f = std::fs::File::open(filename)?;
     let mut contents = String::new();
@@ -108,15 +108,9 @@ pub fn get_done() -> Result<Vec<(usize, String)>> {
     let todos = contents
         .lines()
         .filter(|x| x.starts_with("- "))
-        .map(|x| x.to_owned())
-        .enumerate();
+        .enumerate()
+        .map(|(i, x)| parse_todo(i, &x));
     Ok(todos.collect())
-}
-
-pub fn print_todo_filename() -> Result<()> {
-    let todofile = env::var("TODOFILE")?;
-    println!("{}", todofile);
-    Ok(())
 }
 
 pub fn get_formatted_date() -> String {
@@ -130,7 +124,7 @@ pub fn check_for_blank_files() -> Result<()> {
         println!("TODOFILE now empty");
         println!("If unexpected, revert using dropbox or git");
     }
-    let dones = get_done()?;
+    let dones = get_dones()?;
     if dones.is_empty() {
         println!("DONEFILE now empty");
         println!("If unexpected, revert using dropbox or git");
@@ -138,10 +132,7 @@ pub fn check_for_blank_files() -> Result<()> {
     Ok(())
 }
 
-pub fn filter_todos(
-    todos: &[(usize, String)],
-    args: &[String],
-) -> (Vec<(usize, String)>, Vec<String>) {
+pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>) {
     let positives: Vec<String> = args
         .iter()
         .filter(|&x| x.starts_with('+'))
@@ -157,15 +148,23 @@ pub fn filter_todos(
         .filter(|&x| !(x.starts_with('+') || x.starts_with('-')))
         .map(|x| x[1..].to_owned())
         .collect();
-    let todos_positive: Vec<(usize, String)> = todos
+    let todos_positive: Vec<Todo> = todos
         .iter()
-        .filter(|&(_, x)| positives.iter().all(|y| case_insensitive_match(&x, &y)))
-        .map(|(i, x)| (i.to_owned(), x.to_owned()))
+        .filter(|x| {
+            positives
+                .iter()
+                .all(|y| case_insensitive_match(&x.task, &y))
+        })
+        .map(|x| x.to_owned())
         .collect();
-    let todos_no_negative: Vec<(usize, String)> = todos_positive
+    let todos_no_negative: Vec<Todo> = todos_positive
         .iter()
-        .filter(|&(_, x)| !negatives.iter().any(|y| case_insensitive_match(&x, &y)))
-        .map(|(i, x)| (i.to_owned(), x.to_owned()))
+        .filter(|x| {
+            !negatives
+                .iter()
+                .any(|y| case_insensitive_match(&x.task, &y))
+        })
+        .map(|x| x.to_owned())
         .collect();
     (todos_no_negative, raw_args)
 }
