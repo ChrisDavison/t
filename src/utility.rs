@@ -88,7 +88,7 @@ pub mod save {
         to_file(&dones, env::var("DONEFILE")?)
     }
 
-    fn to_file(todos: &[Todo], filename: String) -> String) -> Result<()> {
+    fn to_file(todos: &[Todo], filename: String) -> Result<()> {
         let todos: String = todos.iter().map(todo::printable).collect();
         fs::write(filename, todos)?;
         Ok(())
