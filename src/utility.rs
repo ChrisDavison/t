@@ -3,7 +3,7 @@ use std::fmt;
 use std::fs;
 use std::io::Read;
 
-use super::view;
+use regex::Regex;
 
 use chrono::{DateTime, Utc};
 
@@ -42,7 +42,9 @@ pub fn parse_todo(idx: usize, line: &str) -> Todo {
     } else {
         (line, false)
     };
-    let (task, date) = if view::re_date.is_match(task) {
+    let re_date: Regex =
+        Regex::new(r"(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
+    let (task, date) = if re_date.is_match(task) {
         (&task[11..], &task[..10])
     } else {
         (task, "")
@@ -63,7 +65,9 @@ pub fn parse_done(idx: usize, line: &str) -> Todo {
     } else {
         (&line[0..10], &line[11..], false)
     };
-    let (task, date) = if view::re_date.is_match(task) {
+    let re_date: Regex =
+        Regex::new(r"(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
+    let (task, date) = if re_date.is_match(task) {
         (&task[11..], &task[..10])
     } else {
         (task, "")
@@ -85,7 +89,8 @@ pub fn todo_printable(t: &Todo) -> String {
         "".to_string()
     };
     let msg = format!("- {}{}{}\n", p, d, t.task);
-    view::re_spc.replace(&msg, " ").to_string()
+    let re_spc: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
+    re_spc.replace(&msg, " ").to_string()
 }
 
 pub fn done_printable(d: &Todo) -> String {
@@ -96,7 +101,8 @@ pub fn done_printable(d: &Todo) -> String {
         "".to_string()
     };
     let msg = format!("- {} {}{}{}\n", d.done, p, dt, d.task);
-    view::re_spc.replace(&msg, " ").to_string()
+    let re_spc: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
+    re_spc.replace(&msg, " ").to_string()
 }
 
 pub fn save_todos(todos: &[Todo]) -> Result<()> {

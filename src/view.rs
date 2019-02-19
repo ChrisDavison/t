@@ -1,15 +1,8 @@
 use super::utility::{self, Todo};
 
 use chrono::{Date, NaiveDate, Utc};
-use regex::Regex;
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
-
-lazy_static! {
-    pub static ref re_date: Regex =
-        Regex::new(r"(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
-    pub static ref re_spc: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
-}
 
 pub fn get_datediff(t: &Todo) -> Result<i64> {
     let date = t.date.clone();

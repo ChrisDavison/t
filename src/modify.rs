@@ -1,4 +1,6 @@
-use super::{utility, view};
+use regex::Regex;
+
+use super::utility;
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
@@ -10,7 +12,9 @@ pub fn add(args: &[String]) -> Result<()> {
     } else {
         (msg.to_string(), false)
     };
-    let (task, date) = if view::re_date.is_match(&task) {
+    let re_date: Regex =
+        Regex::new(r"(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
+    let (task, date) = if re_date.is_match(&task) {
         (&task[11..], &task[..10])
     } else {
         (&task[..], "")
