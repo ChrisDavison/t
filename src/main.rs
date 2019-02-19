@@ -4,6 +4,9 @@ extern crate regex;
 use std::env;
 
 mod modify;
+mod priority;
+mod schedule;
+mod todo;
 mod utility;
 mod view;
 
@@ -44,8 +47,8 @@ fn main() -> Result<()> {
     let cmd: String = env::args().skip(1).take(1).collect();
     let args: Vec<String> = env::args().skip(2).collect();
 
-    let todos = utility::get_todos()?;
-    let dones = utility::get_dones()?;
+    let todos = utility::get::todos()?;
+    let dones = utility::get::dones()?;
 
     let n_todos = todos.len();
     let n_done = dones.len();
@@ -58,11 +61,11 @@ fn main() -> Result<()> {
         "undo" => modify::undo(&args),
         "app" | "append" => modify::append(&args),
         "pre" | "prepend" => modify::prepend(&args),
-        "up" | "upgrade" => modify::upgrade(&args),
-        "down" | "downgrade" => modify::downgrade(&args),
-        "schedule" => modify::schedule::schedule(&args),
-        "unschedule" => modify::schedule::unschedule(&args),
-        "today" => modify::schedule::today(&args),
+        "up" | "upgrade" => priority::upgrade(&args),
+        "down" | "downgrade" => priority::downgrade(&args),
+        "schedule" => schedule::schedule(&args),
+        "unschedule" => schedule::unschedule(&args),
+        "today" => schedule::today(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&todos, &args),
         "lsp" => view::list_priorities(&todos, &args),
@@ -83,11 +86,11 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    if n_todos != 0 && utility::get_todos()?.is_empty() {
+    if n_todos != 0 && utility::get::todos()?.is_empty() {
         println!("TODOFILE now empty");
         println!("If unexpected, revert using dropbox or git");
     }
-    if n_done != 0 && utility::get_dones()?.is_empty() {
+    if n_done != 0 && utility::get::dones()?.is_empty() {
         println!("DONEFILE now empty");
         println!("If unexpected, revert using dropbox or git");
     }

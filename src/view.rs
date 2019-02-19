@@ -1,10 +1,10 @@
-use super::utility::{self, Todo};
+use super::{todo, utility};
 
 use chrono::{Date, NaiveDate, Utc};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
-pub fn get_datediff(t: &Todo) -> Result<i64> {
+pub fn get_datediff(t: &todo::Todo) -> Result<i64> {
     let date = t.date.clone();
     let now: Date<Utc> = Utc::now().date();
     let y = date[0..4].parse()?;
@@ -14,7 +14,7 @@ pub fn get_datediff(t: &Todo) -> Result<i64> {
     Ok((now - task_date).num_days())
 }
 
-pub fn list(todos: &[Todo], args: &[String]) -> Result<()> {
+pub fn list(todos: &[todo::Todo], args: &[String]) -> Result<()> {
     let (todos, _args) = utility::filter_todos(&todos, &args);
     for t in todos {
         println!("{}", t);
@@ -22,7 +22,7 @@ pub fn list(todos: &[Todo], args: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn list_priorities(todos: &[Todo], args: &[String]) -> Result<()> {
+pub fn list_priorities(todos: &[todo::Todo], args: &[String]) -> Result<()> {
     let (todos, _) = utility::filter_todos(&todos, &args);
     for t in todos {
         if t.priority {
@@ -32,7 +32,7 @@ pub fn list_priorities(todos: &[Todo], args: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn done(todos: &[Todo], args: &[String]) -> Result<()> {
+pub fn done(todos: &[todo::Todo], args: &[String]) -> Result<()> {
     let (todos, _) = utility::filter_todos(&todos, &args);
     for t in todos {
         println!("{}", t);
@@ -43,9 +43,9 @@ pub fn done(todos: &[Todo], args: &[String]) -> Result<()> {
 pub mod dated {
     use super::*;
 
-    pub fn due(todos: &[Todo], args: &[String]) -> Result<()> {
+    pub fn due(todos: &[todo::Todo], args: &[String]) -> Result<()> {
         let (todos, _args) = utility::filter_todos(&todos, &args);
-        let mut todos_with_datediff: Vec<(i64, Todo)> = todos
+        let mut todos_with_datediff: Vec<(i64, todo::Todo)> = todos
             .iter()
             .filter(|x| x.date != "")
             .map(|x| (get_datediff(x).unwrap(), x.to_owned()))
@@ -57,9 +57,9 @@ pub mod dated {
         Ok(())
     }
 
-    pub fn mit(todos: &[Todo], args: &[String]) -> Result<()> {
+    pub fn mit(todos: &[todo::Todo], args: &[String]) -> Result<()> {
         let (todos, _args) = utility::filter_todos(&todos, &args);
-        let mut todos_with_datediff: Vec<(i64, Todo)> = todos
+        let mut todos_with_datediff: Vec<(i64, todo::Todo)> = todos
             .iter()
             .filter(|x| x.date != "" && x.priority)
             .map(|x| (get_datediff(x).unwrap(), x.to_owned()))
@@ -72,7 +72,7 @@ pub mod dated {
         Ok(())
     }
 
-    pub fn no_date(todos: &[Todo], args: &[String]) -> Result<()> {
+    pub fn no_date(todos: &[todo::Todo], args: &[String]) -> Result<()> {
         let (todos, _args) = utility::filter_todos(&todos, &args);
         for t in todos {
             if t.date == "" {
