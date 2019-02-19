@@ -18,10 +18,11 @@ pub fn add(args: &[String]) -> Result<()> {
     let todo = utility::Todo {
         idx: todos.len(),
         task: task.to_string(),
-        priority: priority,
+        priority,
         date: date.to_string(),
+        done: String::new(),
     };
-    println!("ADDED {}", todo.task);
+    println!("ADDED {} {}", todos.len(), todo.task);
     todos.push(todo);
     utility::write_enumerated_todos(&todos)
 }
@@ -41,7 +42,7 @@ pub fn append(args: &[String]) -> Result<()> {
     let msg: String = args.iter().skip(1).cloned().collect();
     let mut new = &mut todos[idx];
     new.task = format!("{} {}", new.task, msg);
-    println!("APPENDED {}", &new.task);
+    println!("APPENDED {} {}", idx, &new.task);
     todos[idx] = new.clone();
     utility::write_enumerated_todos(&todos)
 }
@@ -61,7 +62,7 @@ pub fn prepend(args: &[String]) -> Result<()> {
     let msg: String = args.iter().skip(1).cloned().collect();
     let mut new = &mut todos[idx];
     new.task = format!("{} {}", msg, new.task);
-    println!("PREPENDED {}", &new.task);
+    println!("PREPENDED {} {}", idx, &new.task);
     todos[idx] = new.clone();
     utility::write_enumerated_todos(&todos)
 }
@@ -75,7 +76,7 @@ pub fn remove(args: &[String]) -> Result<()> {
     if idx >= todos.len() {
         return Err(From::from("IDX must be within range of num todos"));
     }
-    println!("REMOVED {}", &todos[idx].task);
+    println!("REMOVED {} {}", idx, &todos[idx].task);
     todos.remove(idx);
     utility::write_enumerated_todos(&todos)
 }
@@ -91,8 +92,8 @@ pub fn do_task(args: &[String]) -> Result<()> {
         return Err(From::from("IDX must be within range of num todos"));
     }
     let mut done_task = todos[idx].clone();
-    done_task.task = format!("{} done:{}", done_task.task, utility::get_formatted_date());
-    println!("COMPLETE {}", &todos[idx].task);
+    done_task.done = utility::get_formatted_date();
+    println!("COMPLETE {} {} {}", idx, done_task.done, &todos[idx].task);
     dones.push(done_task.clone());
     todos.remove(idx);
 
@@ -113,11 +114,10 @@ pub fn undo(args: &[String]) -> Result<()> {
     if idx >= dones.len() {
         return Err(From::from("IDX must be within range of num done"));
     }
-    let mut shortened = dones[idx].clone();
-    shortened.task = shortened.task[..shortened.task.len() - 16].to_string();
-    shortened.idx = todos.len();
-    println!("{} {}", msg, &shortened.task);
-    todos.push(shortened);
+    let mut done = dones[idx].clone();
+    done.idx = todos.len();
+    println!("{} {} {}", msg, todos.len(), &done.task);
+    todos.push(done);
     dones.remove(idx);
 
     utility::write_enumerated_todos(&todos)?;
@@ -140,7 +140,7 @@ pub mod prioritise {
             )));
         }
         todos[idx].priority = true;
-        println!("UPGRADED {}", todos[idx].task);
+        println!("UPGRADED {} {}", idx, todos[idx].task);
         utility::write_enumerated_todos(&todos)
     }
 
@@ -157,7 +157,7 @@ pub mod prioritise {
             )));
         }
         todos[idx].priority = false;
-        println!("DOWNGRADED {}", todos[idx].task);
+        println!("DOWNGRADED {} {}", idx, todos[idx].task);
         utility::write_enumerated_todos(&todos)
     }
 }
@@ -176,7 +176,7 @@ pub mod schedule {
             return Err(From::from("Index out of bounds"));
         }
         todos[idx].date = "".to_string();
-        println!("UNSCHEDULED {}", &todos[idx].task);
+        println!("UNSCHEDULED {} {}", idx, &todos[idx].task);
         utility::write_enumerated_todos(&todos)
     }
 
@@ -186,9 +186,9 @@ pub mod schedule {
             Some(i) => i.parse()?,
             None => return Err(From::from("usage: t today IDX")),
         };
-        let t_str = format!("{}", utility::get_formatted_date());
+        let t_str = utility::get_formatted_date().to_string();
         todos[idx].date = t_str;
-        println!("TODAY {}", todos[idx].task);
+        println!("TODAY {} {}", idx, todos[idx].task);
         utility::write_enumerated_todos(&todos)
     }
 
@@ -208,9 +208,9 @@ pub mod schedule {
                 date
             }
         };
-        let t_str = format!("{}", date);
+        let t_str = date.to_string();
         todos[idx].date = t_str;
-        println!("SCHEDULED {}", todos[idx].task);
+        println!("SCHEDULED {} {}", idx, todos[idx].task);
         utility::write_enumerated_todos(&todos)
     }
 }

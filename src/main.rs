@@ -47,6 +47,9 @@ fn main() -> Result<()> {
     let todos = utility::get_todos()?;
     let dones = utility::get_dones()?;
 
+    let n_todos = todos.len();
+    let n_done = dones.len();
+
     let res = match &cmd[..] {
         // ========== Modification
         "a" | "add" => modify::add(&args),
@@ -80,10 +83,13 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    let res = utility::check_for_blank_files();
-    if res.is_err() {
-        println!("{}", res.unwrap_err().description());
-        std::process::exit(2);
+    if n_todos != 0 && utility::get_todos()?.is_empty() {
+        println!("TODOFILE now empty");
+        println!("If unexpected, revert using dropbox or git");
+    }
+    if n_done != 0 && utility::get_dones()?.is_empty() {
+        println!("DONEFILE now empty");
+        println!("If unexpected, revert using dropbox or git");
     }
     Ok(())
 }

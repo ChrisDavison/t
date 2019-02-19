@@ -15,17 +15,23 @@ pub struct Todo {
     pub task: String,
     pub priority: bool,
     pub date: String,
+    pub done: String,
 }
 
 impl fmt::Display for Todo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let p = if self.priority { "! " } else { "" };
+        let p = if self.priority { " ! " } else { "" };
         let d = if self.date != "" {
             format!("{} ", self.date).to_string()
         } else {
-            "".to_string()
+            String::new()
         };
-        write!(f, "{:3}. {}{}{}", self.idx, p, d, self.task)
+        let dd = if self.done != "" {
+            format!("{} ", self.done).to_string()
+        } else {
+            String::new()
+        };
+        write!(f, "{:3}{:3}. {}{:11}{}", p, self.idx, dd, d, self.task)
     }
 }
 
@@ -42,10 +48,32 @@ pub fn parse_todo(idx: usize, line: &str) -> Todo {
         (task, "")
     };
     Todo {
-        idx: idx,
+        idx,
         task: task.to_string(),
-        priority: priority,
+        priority,
         date: date.to_string(),
+        done: "".to_string(),
+    }
+}
+
+pub fn parse_done(idx: usize, line: &str) -> Todo {
+    let line = &line[2..];
+    let (done, task, priority) = if line.starts_with("! ") {
+        (&line[2..12], &line[13..], true)
+    } else {
+        (&line[0..10], &line[11..], false)
+    };
+    let (task, date) = if view::re_date.is_match(task) {
+        (&task[11..], &task[..10])
+    } else {
+        (task, "")
+    };
+    Todo {
+        idx,
+        task: task.to_string(),
+        priority,
+        date: date.to_string(),
+        done: done.to_string(),
     }
 }
 
@@ -79,7 +107,7 @@ pub fn write_enumerated_dones(dones: &[Todo]) -> Result<()> {
             } else {
                 "".to_string()
             };
-            let msg = format!("- {}{}{}\n", p, d, x.task);
+            let msg = format!("- {} {}{}{}\n", x.done, p, d, x.task);
             view::re_spc.replace(&msg, " ").to_string()
         })
         .collect();
@@ -109,27 +137,13 @@ pub fn get_dones() -> Result<Vec<Todo>> {
         .lines()
         .filter(|x| x.starts_with("- "))
         .enumerate()
-        .map(|(i, x)| parse_todo(i, &x));
+        .map(|(i, x)| parse_done(i, &x));
     Ok(todos.collect())
 }
 
 pub fn get_formatted_date() -> String {
     let now: DateTime<Utc> = Utc::now();
     now.format("%Y-%m-%d").to_string()
-}
-
-pub fn check_for_blank_files() -> Result<()> {
-    let todos = get_todos()?;
-    if todos.is_empty() {
-        println!("TODOFILE now empty");
-        println!("If unexpected, revert using dropbox or git");
-    }
-    let dones = get_dones()?;
-    if dones.is_empty() {
-        println!("DONEFILE now empty");
-        println!("If unexpected, revert using dropbox or git");
-    }
-    Ok(())
 }
 
 pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>) {
