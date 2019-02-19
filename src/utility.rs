@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt;
 use std::fs;
 use std::io::Read;
 
@@ -7,6 +8,58 @@ use super::view;
 use chrono::{DateTime, Utc};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+
+pub struct Todo {
+    pub idx: usize,
+    pub task: String,
+    pub priority: bool,
+    pub date: String,
+}
+
+impl fmt::Display for Todo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let p = if self.priority { "! " } else { "" };
+        let d = if self.date != "" {
+            format!("{} ", self.date).to_string()
+        } else {
+            "".to_string()
+        };
+        write!(f, "{:3}. {}{}{}", self.idx, p, d, self.task)
+    }
+}
+
+fn parse_todo(idx: usize, line: &str) -> Todo {
+    let line = &line[2..];
+    let (task, priority) = if line.starts_with("! ") {
+        (&line[2..], true)
+    } else {
+        (line, false)
+    };
+    let (task, date) = if view::re_date.is_match(task) {
+        (&task[11..], &task[..10])
+    } else {
+        (task, "")
+    };
+    Todo {
+        idx: idx,
+        task: task.to_string(),
+        priority: priority,
+        date: date.to_string(),
+    }
+}
+
+pub fn get_todos_vec() -> Result<Vec<Todo>> {
+    let todofile = env::var("TODOFILE").expect("TODOFILE not defined");
+    let mut f = std::fs::File::open(todofile)?;
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)?;
+    let todos = contents
+        .lines()
+        .filter(|x| x.starts_with("- "))
+        .enumerate()
+        .map(|(i, x)| parse_todo(i, x));
+    Ok(todos.collect())
+}
 
 pub fn write_enumerated_todos(todos: &[(usize, String)]) -> Result<()> {
     let todofile = env::var("TODOFILE")?;
