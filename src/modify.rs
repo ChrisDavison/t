@@ -24,7 +24,7 @@ pub fn add(args: &[String]) -> Result<()> {
     };
     println!("ADDED {} {}", todos.len(), todo.task);
     todos.push(todo);
-    utility::write_enumerated_todos(&todos)
+    utility::save_todos(&todos)
 }
 
 pub fn append(args: &[String]) -> Result<()> {
@@ -44,7 +44,7 @@ pub fn append(args: &[String]) -> Result<()> {
     new.task = format!("{} {}", new.task, msg);
     println!("APPENDED {} {}", idx, &new.task);
     todos[idx] = new.clone();
-    utility::write_enumerated_todos(&todos)
+    utility::save_todos(&todos)
 }
 
 pub fn prepend(args: &[String]) -> Result<()> {
@@ -64,7 +64,7 @@ pub fn prepend(args: &[String]) -> Result<()> {
     new.task = format!("{} {}", msg, new.task);
     println!("PREPENDED {} {}", idx, &new.task);
     todos[idx] = new.clone();
-    utility::write_enumerated_todos(&todos)
+    utility::save_todos(&todos)
 }
 
 pub fn remove(args: &[String]) -> Result<()> {
@@ -78,7 +78,7 @@ pub fn remove(args: &[String]) -> Result<()> {
     }
     println!("REMOVED {} {}", idx, &todos[idx].task);
     todos.remove(idx);
-    utility::write_enumerated_todos(&todos)
+    utility::save_todos(&todos)
 }
 
 pub fn do_task(args: &[String]) -> Result<()> {
@@ -97,19 +97,17 @@ pub fn do_task(args: &[String]) -> Result<()> {
     dones.push(done_task.clone());
     todos.remove(idx);
 
-    utility::write_enumerated_todos(&todos)?;
-    utility::write_enumerated_dones(&dones)
+    utility::save_todos(&todos)?;
+    utility::save_dones(&dones)
 }
 
 pub fn undo(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos()?;
     let mut dones = utility::get_dones()?;
-    let mut msg = "UNDONE";
-    let idx = if args.is_empty() {
-        msg = "UNDONE LAST";
-        dones.len() - 1
+    let (idx, msg) = if args.is_empty() {
+        (dones.len() - 1, "UNDONE LAST")
     } else {
-        args[0].parse()?
+        (args[0].parse()?, "UNDONE")
     };
     if idx >= dones.len() {
         return Err(From::from("IDX must be within range of num done"));
@@ -120,46 +118,34 @@ pub fn undo(args: &[String]) -> Result<()> {
     todos.push(done);
     dones.remove(idx);
 
-    utility::write_enumerated_todos(&todos)?;
-    utility::write_enumerated_dones(&dones)
+    utility::save_todos(&todos)?;
+    utility::save_dones(&dones)
 }
 
-pub mod prioritise {
-    use super::*;
-
-    pub fn upgrade(args: &[String]) -> Result<()> {
-        let idx: usize = match args.get(0) {
-            Some(i) => i.parse()?,
-            None => return Err(From::from("usage: t up IDX")),
-        };
-        let mut todos = utility::get_todos()?;
-        if todos.len() < idx {
-            return Err(From::from(format!(
-                "IDX must be < {} (number of tasks)",
-                todos.len()
-            )));
-        }
-        todos[idx].priority = true;
-        println!("UPGRADED {} {}", idx, todos[idx].task);
-        utility::write_enumerated_todos(&todos)
+fn change_priority(args: &[String], new: bool) -> Result<()> {
+    let idx: usize = match args.get(0) {
+        Some(i) => i.parse()?,
+        None => return Err(From::from("Must pass IDX argument")),
+    };
+    let mut todos = utility::get_todos()?;
+    if todos.len() < idx {
+        return Err(From::from(format!(
+            "IDX must be < {} (number of tasks)",
+            todos.len()
+        )));
     }
+    todos[idx].priority = new;
+    let msg = if new { "UPGRADED" } else { "DOWNGRADED" };
+    println!("{} {} {}", msg, idx, todos[idx].task);
+    utility::save_todos(&todos)
+}
 
-    pub fn downgrade(args: &[String]) -> Result<()> {
-        let idx: usize = match args.get(0) {
-            Some(i) => i.parse()?,
-            None => return Err(From::from("usage: t down IDX")),
-        };
-        let mut todos = utility::get_todos()?;
-        if todos.len() < idx {
-            return Err(From::from(format!(
-                "IDX must be < {} (number of tasks)",
-                todos.len()
-            )));
-        }
-        todos[idx].priority = false;
-        println!("DOWNGRADED {} {}", idx, todos[idx].task);
-        utility::write_enumerated_todos(&todos)
-    }
+pub fn upgrade(args: &[String]) -> Result<()> {
+    change_priority(&args, true)
+}
+
+pub fn downgrade(args: &[String]) -> Result<()> {
+    change_priority(&args, false)
 }
 
 pub mod schedule {
@@ -177,7 +163,7 @@ pub mod schedule {
         }
         todos[idx].date = "".to_string();
         println!("UNSCHEDULED {} {}", idx, &todos[idx].task);
-        utility::write_enumerated_todos(&todos)
+        utility::save_todos(&todos)
     }
 
     pub fn today(args: &[String]) -> Result<()> {
@@ -189,7 +175,7 @@ pub mod schedule {
         let t_str = utility::get_formatted_date().to_string();
         todos[idx].date = t_str;
         println!("TODAY {} {}", idx, todos[idx].task);
-        utility::write_enumerated_todos(&todos)
+        utility::save_todos(&todos)
     }
 
     pub fn schedule(args: &[String]) -> Result<()> {
@@ -211,6 +197,6 @@ pub mod schedule {
         let t_str = date.to_string();
         todos[idx].date = t_str;
         println!("SCHEDULED {} {}", idx, todos[idx].task);
-        utility::write_enumerated_todos(&todos)
+        utility::save_todos(&todos)
     }
 }

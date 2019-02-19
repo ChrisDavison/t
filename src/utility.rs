@@ -77,41 +77,43 @@ pub fn parse_done(idx: usize, line: &str) -> Todo {
     }
 }
 
-pub fn write_enumerated_todos(todos: &[Todo]) -> Result<()> {
-    let todofile = env::var("TODOFILE")?;
-    let todos: String = todos
-        .iter()
-        .map(|x| {
-            let p = if x.priority { "! " } else { "" };
-            let d = if x.date != "" {
-                format!("{} ", x.date).to_string()
-            } else {
-                "".to_string()
-            };
-            let msg = format!("- {}{}{}\n", p, d, x.task);
-            view::re_spc.replace(&msg, " ").to_string()
-        })
-        .collect();
-    fs::write(todofile, todos)?;
-    Ok(())
+pub fn todo_printable(t: &Todo) -> String {
+    let p = if t.priority { "! " } else { "" };
+    let d = if t.date != "" {
+        format!("{} ", t.date).to_string()
+    } else {
+        "".to_string()
+    };
+    let msg = format!("- {}{}{}\n", p, d, t.task);
+    view::re_spc.replace(&msg, " ").to_string()
 }
 
-pub fn write_enumerated_dones(dones: &[Todo]) -> Result<()> {
-    let filename = env::var("DONEFILE")?;
-    let dones: String = dones
-        .iter()
-        .map(|x| {
-            let p = if x.priority { "! " } else { "" };
-            let d = if x.date != "" {
-                format!("{} ", x.date).to_string()
-            } else {
-                "".to_string()
-            };
-            let msg = format!("- {} {}{}{}\n", x.done, p, d, x.task);
-            view::re_spc.replace(&msg, " ").to_string()
-        })
-        .collect();
-    fs::write(filename, dones)?;
+pub fn done_printable(d: &Todo) -> String {
+    let p = if d.priority { "! " } else { "" };
+    let dt = if d.date != "" {
+        format!("{} ", d.date).to_string()
+    } else {
+        "".to_string()
+    };
+    let msg = format!("- {} {}{}{}\n", d.done, p, dt, d.task);
+    view::re_spc.replace(&msg, " ").to_string()
+}
+
+pub fn save_todos(todos: &[Todo]) -> Result<()> {
+    save_to_file(&todos, env::var("TODOFILE")?, todo_printable)
+}
+
+pub fn save_dones(dones: &[Todo]) -> Result<()> {
+    save_to_file(&dones, env::var("DONEFILE")?, done_printable)
+}
+
+pub fn save_to_file(
+    todos: &[Todo],
+    filename: String,
+    formatter: fn(&Todo) -> String,
+) -> Result<()> {
+    let todos: String = todos.iter().map(formatter).collect();
+    fs::write(filename, todos)?;
     Ok(())
 }
 
@@ -147,40 +149,29 @@ pub fn get_formatted_date() -> String {
 }
 
 pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>) {
-    let positives: Vec<String> = args
-        .iter()
-        .filter(|&x| x.starts_with('+'))
-        .map(|x| x[1..].to_owned())
-        .collect();
-    let negatives: Vec<String> = args
-        .iter()
-        .filter(|&x| x.starts_with('-'))
-        .map(|x| x[1..].to_owned())
-        .collect();
-    let raw_args: Vec<String> = args
-        .iter()
-        .filter(|&x| !(x.starts_with('+') || x.starts_with('-')))
-        .map(|x| x[1..].to_owned())
-        .collect();
-    let todos_positive: Vec<Todo> = todos
-        .iter()
-        .filter(|x| {
-            positives
-                .iter()
-                .all(|y| case_insensitive_match(&x.task, &y))
-        })
-        .map(|x| x.to_owned())
-        .collect();
-    let todos_no_negative: Vec<Todo> = todos_positive
-        .iter()
-        .filter(|x| {
-            !negatives
-                .iter()
-                .any(|y| case_insensitive_match(&x.task, &y))
-        })
-        .map(|x| x.to_owned())
-        .collect();
-    (todos_no_negative, raw_args)
+    let mut positives: Vec<String> = Vec::new();
+    let mut negatives: Vec<String> = Vec::new();
+    let mut raw_args: Vec<String> = Vec::new();
+    for arg in args {
+        match arg.chars().nth(0).expect("Couldn't read char of query arg") {
+            '+' => positives.push(arg[1..].to_owned()),
+            '-' => negatives.push(arg[1..].to_owned()),
+            _ => raw_args.push(arg.to_owned()),
+        }
+    }
+    let mut todos_filtered = Vec::new();
+    for todo in todos {
+        let has_all_pos = positives
+            .iter()
+            .all(|y| case_insensitive_match(&todo.task, &y));
+        let has_no_neg = !negatives
+            .iter()
+            .any(|y| case_insensitive_match(&todo.task, &y));
+        if has_all_pos && has_no_neg {
+            todos_filtered.push(todo.to_owned());
+        }
+    }
+    (todos_filtered, raw_args)
 }
 
 pub fn case_insensitive_match(haystack: &str, needle: &str) -> bool {

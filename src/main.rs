@@ -12,6 +12,7 @@ mod view;
 const USAGE: &str = "usage: t <CMD> [+filter...] [-filter...] [ARGS...]
 
 Filters will either SHOW filter (+) and/or HIDE filter (-).
+Filters apply to any of the VIEW commands.
 
 COMMANDS:
     a TEXT...               Add a task (add)
@@ -28,6 +29,7 @@ COMMANDS:
     unschedule IDX          Remove due date from task IDX.
     today IDX               Schedule task IDX for today
 
+    // VIEW commands
     ls                      Show tasks (optionally filtered)
     lsp                     Show prioritised tasks (optionally filtered)
     lsd                     Show done tasks (listdone)
@@ -58,8 +60,8 @@ fn main() -> Result<()> {
         "undo" => modify::undo(&args),
         "app" | "append" => modify::append(&args),
         "pre" | "prepend" => modify::prepend(&args),
-        "up" | "upgrade" => modify::prioritise::upgrade(&args),
-        "down" | "downgrade" => modify::prioritise::downgrade(&args),
+        "up" | "upgrade" => modify::upgrade(&args),
+        "down" | "downgrade" => modify::downgrade(&args),
         "schedule" => modify::schedule::schedule(&args),
         "unschedule" => modify::schedule::unschedule(&args),
         "today" => modify::schedule::today(&args),

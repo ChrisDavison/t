@@ -22,15 +22,9 @@ pub fn get_datediff(t: &Todo) -> Result<i64> {
 }
 
 pub fn list(todos: &[Todo], args: &[String]) -> Result<()> {
-    let (todos, args) = utility::filter_todos(&todos, &args);
-    let query = match args.get(0) {
-        Some(q) => q,
-        None => "",
-    };
+    let (todos, _args) = utility::filter_todos(&todos, &args);
     for t in todos {
-        if utility::case_insensitive_match(&t.task, query) {
-            println!("{}", t);
-        }
+        println!("{}", t);
     }
     Ok(())
 }
