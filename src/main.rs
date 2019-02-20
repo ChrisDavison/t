@@ -35,7 +35,7 @@ COMMANDS:
     lsp                     Show prioritised tasks (optionally filtered)
     lsd                     Show done tasks (listdone)
     mit                     Show overdue, or due today, prioritised tasks
-    due [NDAYS]             Show overdue, due today, and tasks due in NDAYS
+    due                     Show overdue, due today, and tasks due in NDAYS
     nd                      Show all todos without a due date (nodate)
 
     help                    Display this message
