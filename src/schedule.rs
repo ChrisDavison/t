@@ -14,7 +14,7 @@ pub fn unschedule(args: &[String]) -> Result<()> {
         return Err(From::from("Index out of bounds"));
     }
     todos[idx].date = "".to_string();
-    println!("UNSCHEDULED {} {}", idx, &todos[idx].task);
+    utility::notify("UNSCHEDULED", idx, &todos[idx].task);
     utility::save::todos(&todos)
 }
 
@@ -26,7 +26,7 @@ pub fn today(args: &[String]) -> Result<()> {
     };
     let t_str = utility::get_formatted_date().to_string();
     todos[idx].date = t_str;
-    println!("TODAY {} {}", idx, todos[idx].task);
+    utility::notify("TODAY", idx, &todos[idx].task);
     utility::save::todos(&todos)
 }
 
@@ -48,6 +48,6 @@ pub fn schedule(args: &[String]) -> Result<()> {
     };
     let t_str = date.to_string();
     todos[idx].date = t_str;
-    println!("SCHEDULED {} {}", idx, todos[idx].task);
+    utility::notify("SCHEDULED", idx, &todos[idx].task);
     utility::save::todos(&todos)
 }

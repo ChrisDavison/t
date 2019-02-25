@@ -5,7 +5,7 @@ type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 pub fn add(args: &[String]) -> Result<()> {
     let mut todos = utility::get::todos()?;
     let todo = todo::parse_todo(todos.len(), &args.join(" ").to_string());
-    println!("ADDED {} {}", todos.len(), todo.task);
+    utility::notify("ADDED", todos.len(), &todo.task);
     todos.push(todo);
     utility::save::todos(&todos)
 }
@@ -25,7 +25,7 @@ pub fn append(args: &[String]) -> Result<()> {
     let msg: String = args.iter().skip(1).cloned().collect();
     let mut new = &mut todos[idx];
     new.task = format!("{} {}", new.task, msg);
-    println!("APPENDED {} {}", idx, &new.task);
+    utility::notify("APPENDED", idx, &new.task);
     todos[idx] = new.clone();
     utility::save::todos(&todos)
 }
@@ -45,7 +45,7 @@ pub fn prepend(args: &[String]) -> Result<()> {
     let msg: String = args.iter().skip(1).cloned().collect();
     let mut new = &mut todos[idx];
     new.task = format!("{} {}", msg, new.task);
-    println!("PREPENDED {} {}", idx, &new.task);
+    utility::notify("PREPENDED", idx, &new.task);
     todos[idx] = new.clone();
     utility::save::todos(&todos)
 }
@@ -59,7 +59,8 @@ pub fn remove(args: &[String]) -> Result<()> {
     if idx >= todos.len() {
         return Err(From::from("IDX must be within range of num todos"));
     }
-    println!("REMOVED {} {}", idx, &todos[idx].task);
+    utility::notify("REMOVED", idx, &todos[idx].task);
+    // println!("REMOVED {} {}", idx, &todos[idx].task);
     todos.remove(idx);
     utility::save::todos(&todos)
 }
@@ -76,7 +77,11 @@ pub fn do_task(args: &[String]) -> Result<()> {
     }
     let mut done_task = todos[idx].clone();
     done_task.done = utility::get_formatted_date();
-    println!("COMPLETE {} {} {}", idx, done_task.done, &todos[idx].task);
+    utility::notify(
+        "COMPLETE",
+        idx,
+        &format!("{} {}", done_task.done, &todos[idx].task),
+    );
     dones.push(done_task.clone());
     todos.remove(idx);
 
@@ -97,7 +102,7 @@ pub fn undo(args: &[String]) -> Result<()> {
     }
     let mut done = dones[idx].clone();
     done.idx = todos.len();
-    println!("{} {} {}", msg, todos.len(), &done.task);
+    utility::notify(msg, todos.len(), &done.task);
     todos.push(done);
     dones.remove(idx);
 

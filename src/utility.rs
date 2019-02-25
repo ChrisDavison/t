@@ -7,6 +7,10 @@ use super::todo::{self, Todo};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
+pub fn notify(m: &str, i: usize, t: &str) {
+    println!("{} :: {} :: {}", m, i, t);
+}
+
 pub fn get_formatted_date() -> String {
     let now: DateTime<Utc> = Utc::now();
     now.format("%Y-%m-%d").to_string()
