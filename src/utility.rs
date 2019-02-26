@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::io::Read;
 
 use chrono::{DateTime, Utc};
 
@@ -48,53 +49,31 @@ pub fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
         .contains(&needle.to_ascii_lowercase())
 }
 
-pub mod get {
-    use std::io::Read;
-
-    use super::super::todo;
-    use super::*;
-
-    pub fn todos() -> Result<Vec<Todo>> {
-        let todofile = env::var("TODOFILE").expect("TODOFILE not defined");
-        let mut f = std::fs::File::open(todofile)?;
-        let mut contents = String::new();
-        f.read_to_string(&mut contents)?;
-        let todos = contents
-            .lines()
-            .filter(|x| x.starts_with("- "))
-            .enumerate()
-            .map(|(i, x)| todo::parse_todo(i, &x[2..]));
-        Ok(todos.collect())
-    }
-
-    pub fn dones() -> Result<Vec<Todo>> {
-        let filename = env::var("DONEFILE").expect("DONEFILE not defined");
-        let mut f = std::fs::File::open(filename)?;
-        let mut contents = String::new();
-        f.read_to_string(&mut contents)?;
-        let todos = contents
-            .lines()
-            .filter(|x| x.starts_with("- "))
-            .enumerate()
-            .map(|(i, x)| todo::parse_done(i, &x));
-        Ok(todos.collect())
-    }
+fn parse_file<T: Into<String>>(filename: &T, parser: fn(usize, &str) -> Todo) -> Result<Vec<Todo>>
+where
+    T: std::convert::AsRef<std::path::Path>,
+{
+    let mut f = std::fs::File::open(filename)?;
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)?;
+    let todos = contents
+        .lines()
+        .filter(|x| x.starts_with("- "))
+        .enumerate()
+        .map(|(i, x)| parser(i, &x));
+    Ok(todos.collect())
 }
 
-pub mod save {
-    use super::*;
+pub fn get_todos() -> Result<Vec<Todo>> {
+    parse_file(&env::var("TODOFILE")?, todo::parse_todo)
+}
 
-    pub fn todos(todos: &[Todo]) -> Result<()> {
-        to_file(&todos, env::var("TODOFILE")?)
-    }
+pub fn get_dones() -> Result<Vec<Todo>> {
+    parse_file(&env::var("DONEFILE")?, todo::parse_done)
+}
 
-    pub fn dones(dones: &[Todo]) -> Result<()> {
-        to_file(&dones, env::var("DONEFILE")?)
-    }
-
-    fn to_file(todos: &[Todo], filename: String) -> Result<()> {
-        let todos: String = todos.iter().map(todo::printable).collect();
-        fs::write(filename, todos)?;
-        Ok(())
-    }
+pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
+    let todos: String = todos.iter().map(todo::printable).collect();
+    fs::write(filename, todos)?;
+    Ok(())
 }

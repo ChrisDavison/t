@@ -45,8 +45,8 @@ fn main() -> Result<()> {
     let cmd: String = env::args().skip(1).take(1).collect();
     let args: Vec<String> = env::args().skip(2).collect();
 
-    let todos = utility::get::todos()?;
-    let dones = utility::get::dones()?;
+    let todos = utility::get_todos()?;
+    let dones = utility::get_dones()?;
 
     let n_todos = todos.len();
     let n_done = dones.len();
@@ -80,11 +80,11 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    if n_todos != 0 && utility::get::todos()?.is_empty() {
+    if n_todos != 0 && utility::get_todos()?.is_empty() {
         println!("TODOFILE now empty");
         println!("If unexpected, revert using dropbox or git");
     }
-    if n_done != 0 && utility::get::dones()?.is_empty() {
+    if n_done != 0 && utility::get_dones()?.is_empty() {
         println!("DONEFILE now empty");
         println!("If unexpected, revert using dropbox or git");
     }

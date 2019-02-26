@@ -1,11 +1,12 @@
 use super::{todo, utility};
 
+use std::env;
 use std::io::{self, Write};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
 pub fn unschedule(args: &[String]) -> Result<()> {
-    let mut todos = utility::get::todos()?;
+    let mut todos = utility::get_todos()?;
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
         None => return Err(From::from("usage: t unschedule IDX")),
@@ -15,11 +16,11 @@ pub fn unschedule(args: &[String]) -> Result<()> {
     }
     todos[idx].date = "".to_string();
     utility::notify("UNSCHEDULED", idx, &todos[idx].task);
-    utility::save::todos(&todos)
+    utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
 pub fn today(args: &[String]) -> Result<()> {
-    let mut todos: Vec<todo::Todo> = utility::get::todos()?;
+    let mut todos: Vec<todo::Todo> = utility::get_todos()?;
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
         None => return Err(From::from("usage: t today IDX")),
@@ -27,11 +28,11 @@ pub fn today(args: &[String]) -> Result<()> {
     let t_str = utility::get_formatted_date().to_string();
     todos[idx].date = t_str;
     utility::notify("TODAY", idx, &todos[idx].task);
-    utility::save::todos(&todos)
+    utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
 pub fn schedule(args: &[String]) -> Result<()> {
-    let mut todos = utility::get::todos()?;
+    let mut todos = utility::get_todos()?;
     let idx: usize = match args.get(0) {
         Some(i) => i.parse()?,
         None => return Err(From::from("usage: t schedule IDX DATE")),
@@ -49,5 +50,5 @@ pub fn schedule(args: &[String]) -> Result<()> {
     let t_str = date.to_string();
     todos[idx].date = t_str;
     utility::notify("SCHEDULED", idx, &todos[idx].task);
-    utility::save::todos(&todos)
+    utility::save_to_file(&todos, env::var("TODOFILE")?)
 }

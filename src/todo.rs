@@ -27,7 +27,11 @@ impl fmt::Display for Todo {
 }
 
 pub fn parse_todo(idx: usize, task: &str) -> Todo {
-    // let task = &task[2..];
+    let task = if task.starts_with("- ") {
+        &task[2..]
+    } else {
+        &task[..]
+    };
     let re_date: Regex =
         Regex::new(r"(\d{4})-(\d{2})-(\d{2})").expect("Couldn't compile date regex");
     let (task, date) = if re_date.is_match(task) {
