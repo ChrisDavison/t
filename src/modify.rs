@@ -57,13 +57,13 @@ pub fn remove(args: &[String]) -> Result<()> {
         return Err(From::from("usage: t rm IDX"));
     }
     let mut todos = utility::get_todos()?;
-    let idx: usize = args[0].parse()?;
-    if idx >= todos.len() {
-        return Err(From::from("IDX must be within range of num todos"));
+    for i in utility::parse_reversed_indices(&args)? {
+        if i >= todos.len() {
+            continue;
+        }
+        utility::notify("REMOVED", i, &todos[i].task);
+        todos.remove(i);
     }
-    utility::notify("REMOVED", idx, &todos[idx].task);
-    // println!("REMOVED {} {}", idx, &todos[idx].task);
-    todos.remove(idx);
     utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
@@ -73,19 +73,20 @@ pub fn do_task(args: &[String]) -> Result<()> {
     }
     let mut todos = utility::get_todos()?;
     let mut dones = utility::get_dones()?;
-    let idx: usize = args[0].parse()?;
-    if idx >= todos.len() {
-        return Err(From::from("IDX must be within range of num todos"));
+    for i in utility::parse_reversed_indices(&args)? {
+        if i >= todos.len() {
+            continue;
+        }
+        let mut done_task = todos[i].clone();
+        done_task.done = utility::get_formatted_date();
+        utility::notify(
+            "COMPLETE",
+            i,
+            &format!("{} {}", done_task.done, &todos[i].task),
+        );
+        dones.push(done_task.clone());
+        todos.remove(i);
     }
-    let mut done_task = todos[idx].clone();
-    done_task.done = utility::get_formatted_date();
-    utility::notify(
-        "COMPLETE",
-        idx,
-        &format!("{} {}", done_task.done, &todos[idx].task),
-    );
-    dones.push(done_task.clone());
-    todos.remove(idx);
 
     utility::save_to_file(&todos, env::var("TODOFILE")?)?;
     utility::save_to_file(&dones, env::var("DONEFILE")?)

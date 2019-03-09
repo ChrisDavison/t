@@ -77,3 +77,10 @@ pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
     fs::write(filename, todos)?;
     Ok(())
 }
+
+pub fn parse_reversed_indices(args: &[String]) -> Result<Vec<usize>> {
+    let mut idx: Vec<usize> = args.iter().map(|x| x.parse()).map(|x| x.unwrap()).collect();
+    idx.sort();
+    idx.reverse();
+    Ok(idx)
+}
