@@ -33,7 +33,7 @@ Commands:
     today IDX               Schedule task for today
 
     list                    [ls] View tasks 
-    listdone                [lsd] View done tasks
+    listdone                [lsd|done] View done tasks
     due                     View scheduled tasks
     nodate                  [nd] View unscheduled tasks
     help                    View this message
@@ -64,7 +64,7 @@ fn main() -> Result<()> {
         "today" => schedule::today(&args),
         // ========== Filtered views
         "ls" | "list" => view::list(&todos, &args),
-        "lsd" | "listdone" => view::done(&dones, &args),
+        "lsd" | "listdone" | "done" => view::done(&dones, &args),
         // ========== Date-based views
         "due" => view::due(&todos, &args),
         "nd" | "nodate" => view::no_date(&todos, &args),
