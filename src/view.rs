@@ -2,7 +2,7 @@ use super::{todo, utility};
 
 use chrono::{Date, NaiveDate, Utc};
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn days_overdue(t: &todo::Todo) -> i64 {
     let now: Date<Utc> = Utc::now().date();

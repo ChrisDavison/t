@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 
 use super::todo::{self, Todo};
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn notify(m: &str, i: usize, t: &str) {
     println!("{} :: {} :: {}", m, i, t);

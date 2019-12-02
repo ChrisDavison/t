@@ -3,7 +3,7 @@ use super::{todo, utility};
 use std::env;
 use std::io::{self, Write};
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn unschedule(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos()?;

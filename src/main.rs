@@ -39,7 +39,7 @@ Commands:
     help                    View this message
 ";
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 fn main() -> Result<()> {
     let cmd: String = env::args().skip(1).take(1).collect();
