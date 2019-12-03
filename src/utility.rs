@@ -53,28 +53,27 @@ fn parse_file<T: Into<String>>(filename: &T, parser: fn(usize, &str) -> Todo) ->
 where
     T: std::convert::AsRef<std::path::Path>,
 {
-    let mut f = std::fs::File::open(filename)?;
+    let mut f = std::fs::File::open(filename).expect("Couldn't open file");
     let mut contents = String::new();
-    f.read_to_string(&mut contents)?;
-    let todos = contents
-        .lines()
-        .filter(|x| x.starts_with("- "))
-        .enumerate()
-        .map(|(i, x)| parser(i, &x));
+    f.read_to_string(&mut contents)
+        .expect("Couldn't read contents of file");
+    let todos = contents.lines().enumerate().map(|(i, x)| parser(i, &x));
     Ok(todos.collect())
 }
 
 pub fn get_todos() -> Result<Vec<Todo>> {
-    parse_file(&env::var("TODOFILE")?, todo::parse_todo)
+    let todofile = env::var("TODOFILE").expect("TODOFILE env var not set");
+    parse_file(&todofile, todo::parse_todo)
 }
 
 pub fn get_dones() -> Result<Vec<Todo>> {
-    parse_file(&env::var("DONEFILE")?, todo::parse_done)
+    let donefile = env::var("DONEFILE").expect("DONEFILE not set");
+    parse_file(&donefile, todo::parse_done)
 }
 
 pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
     let todos: String = todos.iter().map(todo::printable).collect();
-    fs::write(filename, todos)?;
+    fs::write(filename, todos).expect("Couldn't write todos to file");
     Ok(())
 }
 
