@@ -57,8 +57,25 @@ where
     let mut contents = String::new();
     f.read_to_string(&mut contents)
         .expect("Couldn't read contents of file");
-    let todos = contents.lines().enumerate().map(|(i, x)| parser(i, &x));
-    Ok(todos.collect())
+
+    let mut todos = Vec::new();
+
+    let mut current = "".to_string();
+    let mut idx = 0;
+    for line in contents.lines() {
+        if line.starts_with("-") {
+            if current != "" {
+                let todo = parser(idx, &current);
+                todos.push(todo.clone());
+                println!("{}", todo);
+            }
+            current = line.trim_end().to_string();
+            idx += 1;
+        } else {
+            current += &format!(" {}", line.trim());
+        }
+    }
+    Ok(todos)
 }
 
 pub fn get_todos() -> Result<Vec<Todo>> {
