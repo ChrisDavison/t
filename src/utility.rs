@@ -8,8 +8,8 @@ use super::todo::{self, Todo};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn notify(m: &str, i: usize, t: &str) {
-    println!("{} :: {} :: {}", m, i, t);
+pub fn notify(message: &str, index: usize, task: &str) {
+    println!("{}: {:4}. {}", message, index, task);
 }
 
 pub fn get_formatted_date() -> String {
@@ -58,33 +58,22 @@ where
     f.read_to_string(&mut contents)
         .expect("Couldn't read contents of file");
 
-    let mut todos = Vec::new();
-
-    let mut current = "".to_string();
-    let mut idx = 0;
-    for line in contents.lines() {
-        if line.starts_with("-") {
-            if current != "" {
-                let todo = parser(idx, &current);
-                todos.push(todo.clone());
-                println!("{}", todo);
-            }
-            current = line.trim_end().to_string();
-            idx += 1;
-        } else {
-            current += &format!(" {}", line.trim());
-        }
-    }
+    let todos: Vec<Todo> = contents
+        .lines()
+        .filter(|x| x.starts_with("-"))
+        .enumerate()
+        .map(|(i, x)| parser(i, x))
+        .collect();
     Ok(todos)
 }
 
 pub fn get_todos() -> Result<Vec<Todo>> {
-    let todofile = env::var("TODOFILE").expect("TODOFILE env var not set");
+    let todofile = env::var("TODOFILE").map_err(|_| "TODOFILE env var not set")?;
     parse_file(&todofile, todo::parse_todo)
 }
 
 pub fn get_dones() -> Result<Vec<Todo>> {
-    let donefile = env::var("DONEFILE").expect("DONEFILE not set");
+    let donefile = env::var("DONEFILE").map_err(|_| "DONEFILE not set")?;
     parse_file(&donefile, todo::parse_done)
 }
 
