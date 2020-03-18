@@ -85,7 +85,7 @@ impl fmt::Display for Todo {
         let tags = self
             .tags
             .iter()
-            .map(|x| String::from("@") + x)
+            .map(|x| String::from("+") + x)
             .collect::<Vec<String>>()
             .join(" ");
         let keywords = self
@@ -97,7 +97,7 @@ impl fmt::Display for Todo {
             .join(" ");
         let mut msg = String::new();
         let mut prev = self.task.chars().nth(0).unwrap();
-        for char in format!("{}{}{}{}", self.task, projects, tags, keywords).chars() {
+        for char in format!("{} {} {} {}", self.task, projects, tags, keywords).chars() {
             if prev == ' ' && char == ' ' {
                 continue;
             }
