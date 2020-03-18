@@ -6,7 +6,7 @@ type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn add(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos()?;
-    let todo: todo::Todo = args.join(" ").to_string().parse()?;
+    let todo: todo::Todo = args.join(" ").parse()?;
     utility::notify("ADDED", todos.len(), &todo.task);
     todos.push((todos.len(), todo));
     utility::save_to_file(&todos, env::var("TODOFILE")?)

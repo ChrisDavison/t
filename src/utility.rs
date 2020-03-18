@@ -4,7 +4,7 @@ use std::io::Read;
 
 use chrono::{DateTime, Utc};
 
-use super::todo::{self, Todo};
+use super::todo::{Todo, RE_SPC};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
@@ -28,25 +28,12 @@ pub fn filter_todos(todos: &[(usize, Todo)], args: &[String]) -> (Vec<(usize, To
             _ => raw_args.push(arg.to_owned()),
         }
     }
-    let mut todos_filtered = Vec::new();
-    for (idx, todo) in todos {
-        let has_all_pos = positives
-            .iter()
-            .all(|y| case_insensitive_match(&todo.task, &y));
-        let has_no_neg = !negatives
-            .iter()
-            .any(|y| case_insensitive_match(&todo.task, &y));
-        if has_all_pos && has_no_neg {
-            todos_filtered.push((*idx, todo.to_owned()));
-        }
-    }
+    let todos_filtered = todos
+        .iter()
+        .filter(|(_, x)| x.matches(&positives[..], &negatives[..]))
+        .map(|(i, x)| (*i, x.clone()))
+        .collect();
     (todos_filtered, raw_args)
-}
-
-pub fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
-    haystack
-        .to_ascii_lowercase()
-        .contains(&needle.to_ascii_lowercase())
 }
 
 fn parse_file<T: Into<String>>(filename: &T) -> Result<Vec<(usize, Todo)>>
@@ -77,8 +64,35 @@ pub fn get_dones() -> Result<Vec<(usize, Todo)>> {
 }
 
 pub fn save_to_file(todos: &[(usize, Todo)], filename: String) -> Result<()> {
-    let todos: String = todos.iter().map(|(_, x)| todo::printable(x)).collect();
-    fs::write(filename, todos).expect("Couldn't write todos to file");
+    let mut str_out = String::new();
+    for (_, todo) in todos {
+        let kw_string = todo
+            .kws
+            .iter()
+            .map(|(k, v)| format!("{}:{}", k, v))
+            .collect::<Vec<String>>()
+            .join(" ");
+
+        let project_string = todo
+            .projects
+            .iter()
+            .map(|p| format!("@{}", p))
+            .collect::<Vec<String>>()
+            .join(" ");
+
+        let tag_string = todo
+            .tags
+            .iter()
+            .map(|p| format!("+{}", p))
+            .collect::<Vec<String>>()
+            .join(" ");
+        let todo_out_str = &format!(
+            "{} {} {} {}\n",
+            todo.task, project_string, tag_string, kw_string,
+        );
+        str_out.push_str(&RE_SPC.replace(&todo_out_str, " ").to_string())
+    }
+    fs::write(filename, str_out).expect("Couldn't write todos to file");
     Ok(())
 }
 

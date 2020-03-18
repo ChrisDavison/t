@@ -88,8 +88,8 @@ fn main() -> Result<()> {
         }
     };
 
-    if res.is_err() {
-        println!("{}", res.unwrap_err().description());
+    if let Err(err) = res {
+        println!("{}", err.description());
         std::process::exit(1);
     }
 

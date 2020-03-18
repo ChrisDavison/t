@@ -20,7 +20,7 @@ pub fn unschedule(args: &[String]) -> Result<()> {
 
 pub fn today(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos()?;
-    let t_str = utility::get_formatted_date().to_string();
+    let t_str = utility::get_formatted_date();
     for i in utility::parse_reversed_indices(&args)? {
         todos[i].1.kws.insert("due".to_string(), t_str.clone());
         utility::notify("TODAY", i, &todos[i].1.task);
@@ -44,7 +44,7 @@ pub fn schedule(args: &[String]) -> Result<()> {
             date
         }
     };
-    let t_str = date.to_string();
+    let t_str = date;
     todos[idx].1.kws.insert("due".to_string(), t_str);
     utility::notify("SCHEDULED", idx, &todos[idx].1.task);
     utility::save_to_file(&todos[..], env::var("TODOFILE")?)
