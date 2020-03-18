@@ -29,12 +29,13 @@ impl Todo {
             .contains(&needle.to_ascii_lowercase())
     }
     pub fn matches(&self, positives: &[String], negatives: &[String]) -> bool {
+        let taskstr = self.task.clone() + &self.projects.join(" ") + &self.tags.join(" ");
         let has_all_pos = positives
             .iter()
-            .all(|y| Todo::case_insensitive_match(&self.task, &y));
+            .all(|y| Todo::case_insensitive_match(&taskstr, &y));
         let has_no_neg = !negatives
             .iter()
-            .any(|y| Todo::case_insensitive_match(&self.task, &y));
+            .any(|y| Todo::case_insensitive_match(&taskstr, &y));
         has_all_pos && has_no_neg
     }
 }
