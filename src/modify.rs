@@ -6,9 +6,9 @@ type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn add(args: &[String]) -> Result<()> {
     let mut todos = utility::get_todos()?;
-    let todo = todo::parse_todo(todos.len(), &args.join(" ").to_string());
+    let todo: todo::Todo = args.join(" ").to_string().parse()?;
     utility::notify("ADDED", todos.len(), &todo.task);
-    todos.push(todo);
+    todos.push((todos.len(), todo));
     utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
@@ -25,10 +25,10 @@ pub fn append(args: &[String]) -> Result<()> {
         )));
     }
     let msg: String = args.iter().skip(1).cloned().collect();
-    let mut new = &mut todos[idx];
+    let mut new = &mut todos[idx].1;
     new.task = format!("{} {}", new.task, msg);
     utility::notify("APPENDED", idx, &new.task);
-    todos[idx] = new.clone();
+    todos[idx].1 = new.clone();
     utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
@@ -46,9 +46,9 @@ pub fn prepend(args: &[String]) -> Result<()> {
     }
     let msg: String = args.iter().skip(1).cloned().collect();
     let mut new = &mut todos[idx];
-    new.task = format!("{} {}", msg, new.task);
-    utility::notify("PREPENDED", idx, &new.task);
-    todos[idx] = new.clone();
+    new.1.task = format!("{} {}", msg, new.1.task);
+    utility::notify("PREPENDED", idx, &new.1.task);
+    todos[idx].1 = new.1.clone();
     utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
@@ -61,7 +61,7 @@ pub fn remove(args: &[String]) -> Result<()> {
         if i >= todos.len() {
             continue;
         }
-        utility::notify("REMOVED", i, &todos[i].task);
+        utility::notify("REMOVED", i, &todos[i].1.task);
         todos.remove(i);
     }
     utility::save_to_file(&todos, env::var("TODOFILE")?)
@@ -78,11 +78,14 @@ pub fn do_task(args: &[String]) -> Result<()> {
             continue;
         }
         let mut done_task = todos[i].clone();
-        done_task.done = utility::get_formatted_date();
+        done_task
+            .1
+            .kws
+            .insert("done".to_string(), utility::get_formatted_date());
         utility::notify(
             "COMPLETE",
             i,
-            &format!("{} {}", done_task.done, &todos[i].task),
+            &format!("{} {}", done_task.1.kws["done"], &todos[i].1.task),
         );
         dones.push(done_task.clone());
         todos.remove(i);
@@ -103,9 +106,8 @@ pub fn undo(args: &[String]) -> Result<()> {
     if idx >= dones.len() {
         return Err(From::from("IDX must be within range of num done"));
     }
-    let mut done = dones[idx].clone();
-    done.idx = todos.len();
-    utility::notify(msg, todos.len(), &done.task);
+    let done = dones[idx].clone();
+    utility::notify(msg, todos.len(), &done.1.task);
     todos.push(done);
     dones.remove(idx);
 

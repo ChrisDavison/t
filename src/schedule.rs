@@ -1,4 +1,4 @@
-use super::{todo, utility};
+use super::utility;
 
 use std::env;
 use std::io::{self, Write};
@@ -11,21 +11,21 @@ pub fn unschedule(args: &[String]) -> Result<()> {
         if i >= todos.len() {
             continue;
         }
-        todos[i].date = String::new();
-        utility::notify("UNSCHEDULED", i, &todos[i].task);
+        todos[i].1.kws.remove("due");
+        utility::notify("UNSCHEDULED", i, &todos[i].1.task);
     }
     // utility::notify("UNSCHEDULED", idx, &todos[idx].task);
     utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
 pub fn today(args: &[String]) -> Result<()> {
-    let mut todos: Vec<todo::Todo> = utility::get_todos()?;
+    let mut todos = utility::get_todos()?;
     let t_str = utility::get_formatted_date().to_string();
     for i in utility::parse_reversed_indices(&args)? {
-        todos[i].date = t_str.clone();
-        utility::notify("TODAY", i, &todos[i].task);
+        todos[i].1.kws.insert("due".to_string(), t_str.clone());
+        utility::notify("TODAY", i, &todos[i].1.task);
     }
-    utility::save_to_file(&todos, env::var("TODOFILE")?)
+    utility::save_to_file(&todos[..], env::var("TODOFILE")?)
 }
 
 pub fn schedule(args: &[String]) -> Result<()> {
@@ -45,7 +45,7 @@ pub fn schedule(args: &[String]) -> Result<()> {
         }
     };
     let t_str = date.to_string();
-    todos[idx].date = t_str;
-    utility::notify("SCHEDULED", idx, &todos[idx].task);
-    utility::save_to_file(&todos, env::var("TODOFILE")?)
+    todos[idx].1.kws.insert("due".to_string(), t_str);
+    utility::notify("SCHEDULED", idx, &todos[idx].1.task);
+    utility::save_to_file(&todos[..], env::var("TODOFILE")?)
 }

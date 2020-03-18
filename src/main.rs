@@ -1,4 +1,5 @@
 extern crate chrono;
+extern crate lazy_static;
 extern crate regex;
 
 use std::env;

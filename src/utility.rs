@@ -17,7 +17,7 @@ pub fn get_formatted_date() -> String {
     now.format("%Y-%m-%d").to_string()
 }
 
-pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>) {
+pub fn filter_todos(todos: &[(usize, Todo)], args: &[String]) -> (Vec<(usize, Todo)>, Vec<String>) {
     let mut positives: Vec<String> = Vec::new();
     let mut negatives: Vec<String> = Vec::new();
     let mut raw_args: Vec<String> = Vec::new();
@@ -29,7 +29,7 @@ pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>)
         }
     }
     let mut todos_filtered = Vec::new();
-    for todo in todos {
+    for (idx, todo) in todos {
         let has_all_pos = positives
             .iter()
             .all(|y| case_insensitive_match(&todo.task, &y));
@@ -37,7 +37,7 @@ pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>)
             .iter()
             .any(|y| case_insensitive_match(&todo.task, &y));
         if has_all_pos && has_no_neg {
-            todos_filtered.push(todo.to_owned());
+            todos_filtered.push((*idx, todo.to_owned()));
         }
     }
     (todos_filtered, raw_args)
@@ -49,7 +49,7 @@ pub fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
         .contains(&needle.to_ascii_lowercase())
 }
 
-fn parse_file<T: Into<String>>(filename: &T, parser: fn(usize, &str) -> Todo) -> Result<Vec<Todo>>
+fn parse_file<T: Into<String>>(filename: &T) -> Result<Vec<(usize, Todo)>>
 where
     T: std::convert::AsRef<std::path::Path>,
 {
@@ -58,27 +58,26 @@ where
     f.read_to_string(&mut contents)
         .expect("Couldn't read contents of file");
 
-    let todos: Vec<Todo> = contents
+    let todos: Vec<(usize, Todo)> = contents
         .lines()
-        .filter(|x| x.starts_with("-"))
         .enumerate()
-        .map(|(i, x)| parser(i, x))
+        .map(|(i, x)| (i, x.parse().unwrap()))
         .collect();
     Ok(todos)
 }
 
-pub fn get_todos() -> Result<Vec<Todo>> {
+pub fn get_todos() -> Result<Vec<(usize, Todo)>> {
     let todofile = env::var("TODOFILE").map_err(|_| "TODOFILE env var not set")?;
-    parse_file(&todofile, todo::parse_todo)
+    parse_file(&todofile)
 }
 
-pub fn get_dones() -> Result<Vec<Todo>> {
+pub fn get_dones() -> Result<Vec<(usize, Todo)>> {
     let donefile = env::var("DONEFILE").map_err(|_| "DONEFILE not set")?;
-    parse_file(&donefile, todo::parse_done)
+    parse_file(&donefile)
 }
 
-pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
-    let todos: String = todos.iter().map(todo::printable).collect();
+pub fn save_to_file(todos: &[(usize, Todo)], filename: String) -> Result<()> {
+    let todos: String = todos.iter().map(|(_, x)| todo::printable(x)).collect();
     fs::write(filename, todos).expect("Couldn't write todos to file");
     Ok(())
 }
