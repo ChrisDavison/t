@@ -42,7 +42,7 @@ impl Todo {
 
 // Implement .parse() for Todo
 impl std::str::FromStr for Todo {
-    type Err = Box<dyn std::error::Error>;
+    type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut task = s.to_string();
         let mut projects = Vec::new();
