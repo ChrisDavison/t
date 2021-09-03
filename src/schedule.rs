@@ -1,51 +1,37 @@
 use super::utility;
 
 use std::env;
-use std::io::{self, Write};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn unschedule(args: &[String]) -> Result<()> {
+pub fn unschedule(args: &[usize]) -> Result<()> {
     let mut todos = utility::get_todos()?;
-    for i in utility::parse_reversed_indices(&args)? {
+    for i in utility::parse_reversed_indices(args)? {
         if i >= todos.len() {
             continue;
         }
-        todos[i].1.kws.remove("due");
-        utility::notify("UNSCHEDULED", i, &todos[i].1.task);
+        todos[i].kws.remove("due");
+        utility::notify("UNSCHEDULED", i, &todos[i].task);
     }
     // utility::notify("UNSCHEDULED", idx, &todos[idx].task);
     utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
-pub fn today(args: &[String]) -> Result<()> {
+pub fn today(args: &[usize]) -> Result<()> {
     let mut todos = utility::get_todos()?;
     let t_str = utility::get_formatted_date();
-    for i in utility::parse_reversed_indices(&args)? {
-        todos[i].1.kws.insert("due".to_string(), t_str.clone());
-        utility::notify("TODAY", i, &todos[i].1.task);
+    for i in utility::parse_reversed_indices(args)? {
+        todos[i].kws.insert("due".to_string(), t_str.clone());
+        utility::notify("TODAY", i, &todos[i].task);
     }
     utility::save_to_file(&todos[..], env::var("TODOFILE")?)
 }
 
-pub fn schedule(args: &[String]) -> Result<()> {
+pub fn schedule(args: &[usize], date: &str) -> Result<()> {
     let mut todos = utility::get_todos()?;
-    let idx: usize = match args.get(0) {
-        Some(i) => i.parse()?,
-        None => return Err(From::from("usage: t schedule IDX DATE")),
-    };
-    let date: String = match args.get(1) {
-        Some(i) => i.to_owned(),
-        None => {
-            let mut date = String::new();
-            print!("Date: ");
-            io::stdout().flush()?;
-            io::stdin().read_line(&mut date)?;
-            date
-        }
-    };
-    let t_str = date;
-    todos[idx].1.kws.insert("due".to_string(), t_str);
-    utility::notify("SCHEDULED", idx, &todos[idx].1.task);
+    for i in utility::parse_reversed_indices(args)? {
+        todos[i].kws.insert("due".to_string(), date.to_string());
+        utility::notify("SCHEDULED", i, &todos[i].task);
+    }
     utility::save_to_file(&todos[..], env::var("TODOFILE")?)
 }

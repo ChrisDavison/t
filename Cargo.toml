@@ -1,6 +1,6 @@
 [package]
 name = "t"
-version = "0.34.0"
+version = "0.35.0"
 authors = ["Chris Davison <c.jr.davison@gmail.com>"]
 edition = "2018"
 license = "GPL-3.0-only"
@@ -11,3 +11,5 @@ chrono="0.4.6"
 regex="1.1.0"
 lazy_static = "1.4.0"
 anyhow = "1.0"
+structopt = "0.3"
+colored = "*"

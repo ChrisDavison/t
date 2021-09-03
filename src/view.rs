@@ -13,42 +13,59 @@ pub fn days_overdue(t: &todo::Todo) -> i64 {
     (now - task_date).num_days()
 }
 
-pub fn list(todos: &[(usize, todo::Todo)], args: &[String]) -> Result<()> {
-    let (todos, _args) = utility::filter_todos(&todos, &args);
-    for (idx, todo) in todos {
-        println!("{:4}. {}", idx, todo);
+pub fn list(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+    let (mut todos, _args) = utility::filter_todos(todos, filters);
+    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
+    for todo in todos.iter().filter(|x| !x.pri.is_empty()) {
+        println!("{}", todo);
     }
+    for todo in todos.iter().filter(|x| x.pri.is_empty()) {
+        println!("{}", todo);
+    }
+
     Ok(())
 }
 
-pub fn done(todos: &[(usize, todo::Todo)], args: &[String]) -> Result<()> {
-    let (todos, _) = utility::filter_todos(&todos, &args);
-    for (idx, todo) in todos {
-        println!("{:4}. {}", idx, todo);
+pub fn done(todos: &[todo::Todo], args: &[String]) -> Result<()> {
+    let (mut todos, _) = utility::filter_todos(todos, args);
+    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
+    for todo in todos.iter().filter(|x| !x.pri.is_empty()) {
+        println!("{}", todo);
     }
+    for todo in todos.iter().filter(|x| x.pri.is_empty()) {
+        println!("{}", todo);
+    }
+
     Ok(())
 }
 
-pub fn due(todos: &[(usize, todo::Todo)], args: &[String]) -> Result<()> {
-    let (todos, _args) = utility::filter_todos(&todos, &args);
+pub fn due(todos: &[todo::Todo], args: &[String]) -> Result<()> {
+    let (todos, _args) = utility::filter_todos(todos, args);
 
-    let mut datediffed_todos: Vec<(usize, i64, todo::Todo)> = todos
+    let mut datediffed_todos: Vec<(i64, todo::Todo)> = todos
         .iter()
-        .filter(|(_idx, x)| x.kws.contains_key("due"))
-        .map(|(idx, x)| (*idx, days_overdue(x), x.to_owned()))
+        .filter(|x| x.kws.contains_key("due"))
+        .map(|x| (days_overdue(x), x.to_owned()))
         .collect();
-    datediffed_todos.sort_by(|(_, datediff1, _), (_, datediff2, _)| datediff2.cmp(&datediff1));
-    for (idx, _diff, t) in datediffed_todos {
-        println!("{:4}. {}", idx, t);
+    datediffed_todos.sort_by(|(datediff1, _), (datediff2, _)| datediff2.cmp(datediff1));
+    for (_, t) in datediffed_todos {
+        println!("{}", t);
     }
     Ok(())
 }
 
-pub fn no_date(todos: &[(usize, todo::Todo)], args: &[String]) -> Result<()> {
-    let (todos, _args) = utility::filter_todos(&todos, &args);
-    let undated_todos = todos.iter().filter(|(_idx, x)| !x.kws.contains_key("due"));
-    for (idx, t) in undated_todos {
-        println!("{:4}. {}", idx, t);
+pub fn no_date(todos: &[todo::Todo], args: &[String]) -> Result<()> {
+    let (todos, _args) = utility::filter_todos(todos, args);
+    let undated_todos: Vec<_> = todos
+        .iter()
+        .filter(|x| !x.kws.contains_key("due"))
+        .collect();
+    for todo in undated_todos.iter().filter(|x| !x.pri.is_empty()) {
+        println!("{}", todo);
     }
+    for todo in undated_todos.iter().filter(|x| x.pri.is_empty()) {
+        println!("{}", todo);
+    }
+
     Ok(())
 }
