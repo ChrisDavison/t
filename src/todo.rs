@@ -11,7 +11,7 @@ lazy_static! {
     static ref RE_TAG: Regex =
         Regex::new(r"\+([a-zA-Z0-9\-]+)").expect("Couldn't compile tag regex");
     static ref RE_PRI: Regex =
-        Regex::new(r"\(([a-zA-Z]+)\)").expect("Couldn't compile priority regex");
+        Regex::new(r"^\(([a-zA-Z]+)\)").expect("Couldn't compile priority regex");
     static ref RE_KEYWORD: Regex =
         Regex::new(r"([a-zA-Z]+):([a-zA-Z0-9\-]+)").expect("Couldn't compile keyword regex");
     pub static ref RE_SPC: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
@@ -108,7 +108,13 @@ impl fmt::Display for Todo {
             .map(|(k, v)| format!("{}:{}", k, v))
             .collect::<Vec<String>>()
             .join(" ");
-        let pre = format!("{:4}. {}{:11}{}", self.idx, dd, d, self.task);
+        let pre = format!(
+            "{:4}. {}{:11}{}",
+            self.idx,
+            dd,
+            d,
+            self.task.trim_end_matches(" ")
+        );
         let pre = match self.pri.as_ref() {
             "A" => pre.yellow(),
             "B" => pre.green(),

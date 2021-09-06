@@ -34,6 +34,9 @@ enum Command {
     /// View tasks
     #[structopt(alias = "ls")]
     List { filters: Vec<String> },
+    /// View tasks with a priority
+    #[structopt(alias = "lsp")]
+    ListPriority { filters: Vec<String> },
     /// View done tasks
     #[structopt(alias = "lsd")]
     ListDone { filters: Vec<String> },
@@ -69,6 +72,7 @@ Commands:
 
     list                    [ls] View tasks
     listdone                [lsd|done] View done tasks
+    listpriority            [lsp] View tasks with a priority
     due                     View scheduled tasks
     nodate                  [nd] View unscheduled tasks
     help                    View this message
@@ -97,7 +101,8 @@ fn main() -> Result<()> {
     // let num_todos_at_start = todos.len();
     // let num_done_at_start = dones.len();
 
-    let result = match opts { // ========== Modification
+    let result = match opts {
+        // ========== Modification
         Command::Add { text } => modify::add(&text),
         Command::Append { idx, text } => modify::append(idx, &text),
         Command::Prepend { idx, text } => modify::prepend(idx, &text),
@@ -110,6 +115,7 @@ fn main() -> Result<()> {
         Command::Today { idx } => schedule::today(&idx),
         // ========== Filtered views
         Command::List { filters } => view::list(&todos, &filters),
+        Command::ListPriority { filters } => view::list_priority(&todos, &filters),
         Command::ListDone { filters } => view::done(&dones, &filters),
         // ========== Date-based views
         Command::Due { filters } => view::due(&todos, &filters),

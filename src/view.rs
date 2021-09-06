@@ -26,6 +26,15 @@ pub fn list(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
+pub fn list_priority(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+    let (mut todos, _args) = utility::filter_todos(todos, filters);
+    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
+    for todo in todos.iter().filter(|x| !x.pri.is_empty()) {
+        println!("{}", todo);
+    }
+    Ok(())
+}
+
 pub fn done(todos: &[todo::Todo], args: &[String]) -> Result<()> {
     let (mut todos, _) = utility::filter_todos(todos, args);
     todos.sort_by(|a, b| a.pri.cmp(&b.pri));

@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::io::Read;
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 
 use super::todo::{Todo, RE_SPC};
 
@@ -13,8 +13,7 @@ pub fn notify(message: &str, index: usize, task: &str) {
 }
 
 pub fn get_formatted_date() -> String {
-    let now: DateTime<Utc> = Utc::now();
-    now.format("%Y-%m-%d").to_string()
+    Utc::now().format("%Y-%m-%d").to_string()
 }
 
 pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>) {
@@ -91,8 +90,8 @@ pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
             .collect::<Vec<String>>()
             .join(" ");
         let todo_out_str = &format!(
-            "{:4}. {} {} {} {}\n",
-            todo.idx, todo.task, project_string, tag_string, kw_string,
+            "{} {} {} {}\n",
+            todo.task, project_string, tag_string, kw_string,
         );
         str_out.push_str(&RE_SPC.replace(todo_out_str, " ").to_string())
     }
