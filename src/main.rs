@@ -34,6 +34,10 @@ enum Command {
     ListPriority { filters: Vec<String> },
     /// View done tasks
     ListDone { filters: Vec<String> },
+    /// Projects
+    ListProjects,
+    /// Contexts
+    ListContexts,
     /// View done tasks, by date, for last N days
     DoneSummary { filters: Vec<String> },
     /// View scheduled tasks
@@ -63,6 +67,8 @@ Commands:
     list [FILTER]...         [ls] View tasks
     listdone [FILTER]...     [lsd|done] View done tasks
     listpriority [FILTER]... [lsp] View tasks with a priority
+    listprojects             [prj|lsprj] View projects
+    listcontexts             [con|lscon] View contexts
     due [FILTER]...          View scheduled tasks
     nodate [FILTER]...       [nd] view unscheduled tasks
     donesummary [FILTER]...  [ds] view completed tasks in last 7 days
@@ -112,14 +118,16 @@ fn main() -> Result<()> {
         Command::Do { mut idxs } => modify::do_task(&mut idxs, &mut todos),
         Command::Undo { mut idxs } => modify::undo(&mut idxs, &mut todos, &mut dones),
         // ========== SCHEDULING
-        Command::Schedule { mut idxs, date } => do_to_each::schedule(&mut idxs, &mut todos, &date),
-        Command::Unschedule { mut idxs } => do_to_each::unschedule(&mut idxs, &mut todos),
-        Command::Today { mut idxs } => do_to_each::today(&mut idxs, &mut todos),
+        Command::Schedule { mut idxs, date } => schedule_each(&mut idxs, &mut todos, &date),
+        Command::Unschedule { mut idxs } => unschedule_each(&mut idxs, &mut todos),
+        Command::Today { mut idxs } => schedule_each_today(&mut idxs, &mut todos),
         // ========== Filtered views
         Command::List { filters } => view::list(&todos, &filters),
         Command::ListPriority { filters } => view::list_priority(&todos, &filters),
         Command::ListDone { filters } => view::done(&dones, &filters),
         Command::DoneSummary { filters } => view::done_summary(&dones, &filters),
+        Command::ListProjects => view::projects(&todos),
+        Command::ListContexts => view::contexts(&todos),
         // ========== Date-based views
         Command::Due { n_days, filters } => view::due(&todos, n_days, &filters),
         Command::NoDate { filters } => view::no_date(&todos, &filters),
@@ -234,6 +242,8 @@ fn parse_args() -> Result<(Command, bool)> {
         Some("listdone" | "lsd" | "done") => Command::ListDone {
             filters: rest_as_strings(pargs),
         },
+        Some("listprojects" | "prj" | "lsprj" | "projects") => Command::ListProjects,
+        Some("listcontexts" | "con" | "lscon" | "contexts") => Command::ListContexts,
         Some("donesummary" | "ds") => Command::DoneSummary {
             filters: rest_as_strings(pargs),
         },
@@ -257,36 +267,30 @@ fn parse_args() -> Result<(Command, bool)> {
     Ok((command, autoarchive))
 }
 
-mod do_to_each {
-    use super::*;
-    pub fn unschedule(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-        for i in utility::parse_reversed_indices(args)? {
-            if i >= todos.len() {
-                continue;
-            }
-            todos[i].due_date = None;
-            todos[i].unschedule();
-            utility::notify("UNSCHEDULED", i, &todos[i].task);
+pub fn unschedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    for i in utility::parse_reversed_indices(args)? {
+        if i >= todos.len() {
+            continue;
         }
-        Ok(())
+        todos[i].due_date = None;
+        todos[i].unschedule();
     }
+    Ok(())
+}
 
-    pub fn today(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-        let t_str = utility::get_formatted_date();
-        for i in utility::parse_reversed_indices(args)? {
-            todos[i].due_date = Some(t_str.clone());
-            todos[i].schedule_today();
-            utility::notify("TODAY", i, &todos[i].task);
-        }
-        Ok(())
+pub fn schedule_each_today(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    let t_str = utility::get_formatted_date();
+    for i in utility::parse_reversed_indices(args)? {
+        todos[i].due_date = Some(t_str.clone());
+        todos[i].schedule_today();
     }
+    Ok(())
+}
 
-    pub fn schedule(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>, date: &str) -> Result<()> {
-        for i in utility::parse_reversed_indices(args)? {
-            todos[i].due_date = Some(date.to_string());
-            todos[i].schedule(date);
-            utility::notify("SCHEDULED", i, &todos[i].task);
-        }
-        Ok(())
+pub fn schedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>, date: &str) -> Result<()> {
+    for i in utility::parse_reversed_indices(args)? {
+        todos[i].due_date = Some(date.to_string());
+        todos[i].schedule(date);
     }
+    Ok(())
 }

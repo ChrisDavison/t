@@ -4,6 +4,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use chrono::NaiveDate;
+#[cfg(not(test))]
 use chrono::Utc;
 
 use super::todo::Todo;

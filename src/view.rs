@@ -125,3 +125,31 @@ pub fn no_date(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
 
     Ok(())
 }
+
+pub fn projects(todos: &[todo::Todo]) -> Result<()> {
+    let mut projects = HashMap::new();
+    for t in todos {
+        for project in &t.projects {
+            let entry = projects.entry(project).or_insert(0);
+            *entry += 1;
+        }
+    }
+    for (p, n) in projects {
+        println!("{} {}", p, n);
+    }
+    Ok(())
+}
+
+pub fn contexts(todos: &[todo::Todo]) -> Result<()> {
+    let mut contexts = HashMap::new();
+    for t in todos {
+        for context in &t.contexts {
+            let entry = contexts.entry(context).or_insert(0);
+            *entry += 1;
+        }
+    }
+    for (c, n) in contexts {
+        println!("{} {}", c, n);
+    }
+    Ok(())
+}
