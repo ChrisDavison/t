@@ -35,7 +35,7 @@ enum Command {
     /// View done tasks
     ListDone { filters: Vec<String> },
     /// View done tasks, by date, for last N days
-    DoneSummary { n_days: usize, filters: Vec<String> },
+    DoneSummary { filters: Vec<String> },
     /// View scheduled tasks
     Due { n_days: usize, filters: Vec<String> },
     /// View unscheduled tasks
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
         Command::List { filters } => view::list(&todos, &filters),
         Command::ListPriority { filters } => view::list_priority(&todos, &filters),
         Command::ListDone { filters } => view::done(&dones, &filters),
-        Command::DoneSummary { n_days, filters } => view::done_summary(&dones, n_days, &filters),
+        Command::DoneSummary { filters } => view::done_summary(&dones, &filters),
         // ========== Date-based views
         Command::Due { n_days, filters } => view::due(&todos, n_days, &filters),
         Command::NoDate { filters } => view::no_date(&todos, &filters),
@@ -235,7 +235,6 @@ fn parse_args() -> Result<(Command, bool)> {
             filters: rest_as_strings(pargs),
         },
         Some("donesummary" | "ds") => Command::DoneSummary {
-            n_days: pargs.opt_free_from_str()?.unwrap_or(7),
             filters: rest_as_strings(pargs),
         },
 

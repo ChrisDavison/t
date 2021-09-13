@@ -51,15 +51,19 @@ pub fn done(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn done_summary(dones: &[todo::Todo], n_days: usize, filters: &[String]) -> Result<()> {
+pub fn done_summary(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
     let today = Utc::now().date();
     let mut last_week = HashMap::new();
+
+    let n_days = std::env::var("T_DONESUMMARY_DAYS")
+        .unwrap_or("7".to_string())
+        .parse()?;
 
     for done in utility::filter_todos(dones, filters) {
         if let Some(d) = utility::parse_date(done.done_date.as_ref()) {
             let task_date = Date::from_utc(d, *today.offset());
             let delta = (today - task_date).num_days();
-            if delta < n_days as i64 {
+            if delta < n_days {
                 let entry = last_week.entry(delta).or_insert_with(Vec::new);
                 entry.push(done.clone());
             }
