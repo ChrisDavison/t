@@ -32,6 +32,16 @@ pub fn prepend(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Resu
     }
 }
 
+pub fn prioritise(idx: usize, todos: &mut Vec<todo::Todo>, priority: Option<String>) -> Result<()> {
+    let n_todos = todos.len();
+    if let Some(t) = todos.get_mut(idx) {
+        t.prioritise(priority);
+        Ok(())
+    } else {
+        Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
+    }
+}
+
 pub fn remove(idx: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
     idx.sort_unstable();
     // reverse so that we always pop from the end of the list

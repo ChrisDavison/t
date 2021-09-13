@@ -2,7 +2,7 @@ use super::utility;
 use colored::*;
 use std::fmt;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Todo {
     pub idx: usize,
     pub task: String,
@@ -14,19 +14,21 @@ pub struct Todo {
 }
 
 impl Todo {
-    fn case_insensitive_match(haystack: &str, needle: &str) -> bool {
+    fn case_insensitive_match(haystack: impl ToString, needle: impl ToString) -> bool {
         haystack
+            .to_string()
             .to_ascii_lowercase()
-            .contains(&needle.to_ascii_lowercase())
+            .contains(&needle.to_string().to_ascii_lowercase())
     }
-    pub fn matches(&self, positives: &[String], negatives: &[String]) -> bool {
+
+    pub fn matches(&self, positives: &[impl ToString], negatives: &[impl ToString]) -> bool {
         let taskstr = self.task.clone() + &self.projects.join(" ") + &self.contexts.join(" ");
         let has_all_pos = positives
             .iter()
-            .all(|y| Todo::case_insensitive_match(&taskstr, y));
+            .all(|y| Todo::case_insensitive_match(&taskstr, y.to_string()));
         let has_no_neg = !negatives
             .iter()
-            .any(|y| Todo::case_insensitive_match(&taskstr, y));
+            .any(|y| Todo::case_insensitive_match(&taskstr, y.to_string()));
         has_all_pos && has_no_neg
     }
 
@@ -39,6 +41,15 @@ impl Todo {
     pub fn prepend_text(&mut self, text: &str) {
         self.task = format!("{} {}", text, self.task);
         utility::notify("PREPENDED", self.idx, &self.task);
+    }
+
+    pub fn prioritise(&mut self, priority: Option<String>) {
+        self.pri = priority;
+        if self.pri.is_some() {
+            utility::notify("PRIORITISED", self.idx, &self.task);
+        } else {
+            utility::notify("DEPRIORITISED", self.idx, &self.task);
+        }
     }
 
     pub fn mark_done(&mut self) {
@@ -192,5 +203,243 @@ impl fmt::Display for Todo {
         }
 
         write!(f, "{}", to_output.join(" "))
+    }
+}
+
+#[allow(dead_code, unused_imports)]
+mod tests {
+    use crate::todo::Todo;
+
+    #[test]
+    fn test_add() {
+        let input = "this is a test +p1 +p2 @c1";
+        let t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        let got: Todo = input.parse().unwrap();
+        assert_eq!(t, got);
+    }
+
+    #[test]
+    fn test_append() {
+        let mut t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        t.append_text("EXTRA");
+
+        let expected = Todo {
+            idx: 0,
+            task: "this is a test EXTRA".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+
+        assert_eq!(t, expected);
+    }
+
+    #[test]
+    fn test_prepend() {
+        let mut t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        t.prepend_text("EXTRA");
+
+        let expected = Todo {
+            idx: 0,
+            task: "EXTRA this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+
+        assert_eq!(t, expected);
+    }
+
+    #[test]
+    fn test_schedule() {
+        let mut t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        t.schedule("2021-01-01");
+
+        let expected = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+
+        assert_eq!(t, expected);
+    }
+
+    #[test]
+    fn test_unschedule() {
+        let mut t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+        t.unschedule();
+
+        let expected = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+
+        assert_eq!(t, expected);
+    }
+
+    #[test]
+    fn test_match() {
+        let t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+
+        assert!(t.matches(&["test"], &["blah"]));
+        assert!(!t.matches(&["test"], &["+p1"]));
+        assert!(t.matches(&["test"], &["+badproj"]));
+    }
+
+    #[test]
+    fn mark_done() {
+        let mut input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+        input.mark_done();
+        let want = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some("2021-01-01".to_string()),
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(input, want);
+    }
+
+    #[test]
+    fn mark_undone() {
+        let mut input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some("2021-01-01".to_string()),
+            due_date: Some("2021-01-01".to_string()),
+        };
+        input.mark_undone();
+        let mut want = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(input, want);
+    }
+
+    #[test]
+    fn mark_prioritise() {
+        let mut input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        input.prioritise(Some("A".to_string()));
+        let want = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: Some("A".to_string()),
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        assert_eq!(input, want);
+    }
+
+    #[test]
+    fn mark_deprioritise() {
+        let mut input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: Some("A".to_string()),
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+        input.prioritise(None);
+        let want = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(input, want);
     }
 }

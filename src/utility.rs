@@ -14,6 +14,12 @@ pub fn notify(message: &str, index: usize, task: &str) {
     println!("{}: {:4}. {}", message, index, task);
 }
 
+#[cfg(test)]
+pub fn get_formatted_date() -> String {
+    "2021-01-01".to_string()
+}
+
+#[cfg(not(test))]
 pub fn get_formatted_date() -> String {
     Utc::now().format("%Y-%m-%d").to_string()
 }

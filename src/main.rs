@@ -12,6 +12,10 @@ enum Command {
     Append { idx: usize, text: Vec<String> },
     /// Prepend text to a task
     Prepend { idx: usize, text: Vec<String> },
+    /// Prioritise a task
+    Prioritise { idx: usize, priority: String },
+    /// Deprioritise a task
+    Deprioritise { idx: usize },
     /// Remove a task
     Remove { idxs: Vec<usize> },
     /// Move task to DONEFILE
@@ -43,36 +47,32 @@ enum Command {
 #[allow(dead_code)]
 const USAGE: &str = "usage: t <COMMAND> [ARGS]...
 
-
 Commands:
     add TEXT...              [a] Add a task
     append IDX TEXT...       [app] Append TEXT... to task
     prepend IDX TEXT...      [pre] Prepend TEXT... to task
-    remove IDX               [rm|del] Remove task
-    do IDX                   Move task to DONE
-    undo IDX                 Move task from DONE to TODO
-
-    schedule IDX DATE        Schedule task
-    unschedule IDX           Remove due date from task
-    today IDX                Schedule task for today
+    priority IDX PRIORITY    [pri] Change priority of task
+    deprioritise IDX         [depri|dp] Remove task priority
+    remove IDX...            [rm|del] Remove task
+    do IDX...                Move task to DONE
+    undo IDX...              Move task from DONE to TODO
+    schedule DATE IDX...     Schedule task
+    unschedule IDX...        Remove due date from task
+    today IDX...             Schedule task for today
 
     list [FILTER]...         [ls] View tasks
     listdone [FILTER]...     [lsd|done] View done tasks
     listpriority [FILTER]... [lsp] View tasks with a priority
     due [FILTER]...          View scheduled tasks
     nodate [FILTER]...       [nd] view unscheduled tasks
-
     donesummary [FILTER]...  [ds] view completed tasks in last 7 days
-
     archive                  move done tasks to archive
+
     help                     View this message
 
 Note:
-    Files are $TODOFILE and $DONEFILE, both following todo.txt syntax
-
-    FILTERS: Any words with '-' prefix will be treated as MUST NOT MATCH. Else,
-    all the rest must match.
-
+    Files - $TODOFILE and $DONEFILE, both following todo.txt syntax
+    Filters - match NO words beginning with '-'. Match ALL the rest.
     IDX refers to the number of the task you wish to modify.
     Words in square brackets are aliases for commands";
 
@@ -97,12 +97,17 @@ fn main() -> Result<()> {
     let num_todos_at_start = todos.len();
     let num_done_at_start = dones.len();
 
-    let (command, mut autoarchive) = parse_pico()?;
+    let (command, mut autoarchive) = parse_args()?;
     let result = match command {
         // ========== Modification
         Command::Add { text } => modify::add(&text, &mut todos),
         Command::Append { idx, text } => modify::append(idx, &mut todos, &text),
         Command::Prepend { idx, text } => modify::prepend(idx, &mut todos, &text),
+        Command::Prioritise { idx, priority } => {
+            modify::prioritise(idx, &mut todos, Some(priority))
+        }
+        Command::Deprioritise { idx } => modify::prioritise(idx, &mut todos, None),
+
         Command::Remove { mut idxs } => modify::remove(&mut idxs, &mut todos),
         Command::Do { mut idxs } => modify::do_task(&mut idxs, &mut todos),
         Command::Undo { mut idxs } => modify::undo(&mut idxs, &mut todos, &mut dones),
@@ -149,7 +154,7 @@ fn main() -> Result<()> {
 }
 
 // Return the command to execute, and whether to auto-archive
-fn parse_pico() -> Result<(Command, bool)> {
+fn parse_args() -> Result<(Command, bool)> {
     let mut pargs = pico_args::Arguments::from_env();
 
     // Help has a higher priority and should be handled separately.
@@ -193,6 +198,13 @@ fn parse_pico() -> Result<(Command, bool)> {
         Some("prepend" | "pre") => Command::Prepend {
             idx: pargs.free_from_str()?,
             text: rest_as_strings(pargs),
+        },
+        Some("priority" | "pri") => Command::Prioritise {
+            idx: pargs.free_from_str()?,
+            priority: pargs.free_from_str()?,
+        },
+        Some("deprioritise" | "depri") => Command::Deprioritise {
+            idx: pargs.free_from_str()?,
         },
         Some("remove" | "rm" | "delete" | "del") => Command::Remove {
             idxs: rest_as_usizes(pargs),
