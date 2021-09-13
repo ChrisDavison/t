@@ -3,6 +3,7 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use chrono::NaiveDate;
 use chrono::Utc;
 
 use super::todo::Todo;
@@ -72,4 +73,9 @@ pub fn parse_reversed_indices(idxs: &mut Vec<usize>) -> Result<Vec<usize>> {
     idx.sort_unstable();
     idx.reverse();
     Ok(idx)
+}
+
+pub fn parse_date(date: Option<&String>) -> Option<NaiveDate> {
+    date.map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .flatten()
 }

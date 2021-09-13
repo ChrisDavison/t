@@ -30,6 +30,8 @@ enum Command {
     ListPriority { filters: Vec<String> },
     /// View done tasks
     ListDone { filters: Vec<String> },
+    /// View done tasks, by date, for last N days
+    DoneSummary { n_days: usize, filters: Vec<String> },
     /// View scheduled tasks
     Due { filters: Vec<String> },
     /// View unscheduled tasks
@@ -41,14 +43,6 @@ enum Command {
 #[allow(dead_code)]
 const USAGE: &str = "usage: t <COMMAND> [ARGS]...
 
-Filters only apply to viewing (not modification) commands.  They are
-case-insensitive, and will show todos matching all `+` and no `-` filters.
-
-Note:
-    TODOS are defined in '$TODOFILE', following todo.txt syntax
-    DONES are defined in '$DONEFILE', following todo.txt syntax
-    IDX refers to the number of the task you wish to modify
-    Words in square brackets are short-aliases
 
 Commands:
     add TEXT...              [a] Add a task
@@ -68,10 +62,19 @@ Commands:
     due [FILTER]...          View scheduled tasks
     nodate [FILTER]...       [nd] view unscheduled tasks
 
-    donesummary              view completed tasks in last 7 days
+    donesummary [FILTER]...  [ds] view completed tasks in last 7 days
 
     archive                  move done tasks to archive
-    help                     View this message";
+    help                     View this message
+
+Note:
+    Files are $TODOFILE and $DONEFILE, both following todo.txt syntax
+
+    FILTERS: Any words with '-' prefix will be treated as MUST NOT MATCH. Else,
+    all the rest must match.
+
+    IDX refers to the number of the task you wish to modify.
+    Words in square brackets are aliases for commands";
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
@@ -110,6 +113,7 @@ fn main() -> Result<()> {
         Command::List { filters } => view::list(&todos, &filters),
         Command::ListPriority { filters } => view::list_priority(&todos, &filters),
         Command::ListDone { filters } => view::done(&dones, &filters),
+        Command::DoneSummary { n_days, filters } => view::done_summary(&dones, n_days, &filters),
         // ========== Date-based views
         Command::Due { filters } => view::due(&todos, &filters),
         Command::NoDate { filters } => view::no_date(&todos, &filters),
@@ -202,6 +206,11 @@ fn parse_pico() -> Result<Command> {
         Some("listdone" | "lsd" | "done") => Command::ListDone {
             filters: rest_as_strings(pargs),
         },
+        Some("donesummary" | "ds") => Command::DoneSummary {
+            n_days: pargs.opt_free_from_str()?.unwrap_or(7),
+            filters: rest_as_strings(pargs),
+        },
+
         Some("due") => Command::Due {
             filters: rest_as_strings(pargs),
         },

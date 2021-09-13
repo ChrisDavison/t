@@ -87,6 +87,22 @@ impl Todo {
 
         to_output.join(" ")
     }
+
+    pub fn donesummary_format(&self) -> String {
+        let mut to_output: Vec<String> = vec![self.task.to_string()];
+
+        let projects: String = self.projects.join(" ");
+        if !projects.is_empty() {
+            to_output.push(projects);
+        }
+
+        let contexts: String = self.contexts.join(" ");
+        if !contexts.is_empty() {
+            to_output.push(contexts);
+        }
+
+        to_output.join(" ")
+    }
 }
 
 // Implement .parse() for Todo

@@ -1,6 +1,7 @@
 use super::{todo, utility};
 
-use chrono::{Date, NaiveDate, Utc};
+use chrono::{Date, Duration, NaiveDate, Utc};
+use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
@@ -37,8 +38,8 @@ pub fn list_priority(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn done(todos: &[todo::Todo], args: &[String]) -> Result<()> {
-    let mut todos = utility::filter_todos(todos, args);
+pub fn done(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
+    let mut todos = utility::filter_todos(dones, filters);
     todos.sort_by(|a, b| a.pri.cmp(&b.pri));
     for todo in todos.iter().filter(|x| x.pri.is_some()) {
         println!("{}", todo);
@@ -50,8 +51,40 @@ pub fn done(todos: &[todo::Todo], args: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn due(todos: &[todo::Todo], args: &[String]) -> Result<()> {
-    let todos = utility::filter_todos(todos, args);
+pub fn done_summary(dones: &[todo::Todo], n_days: usize, filters: &[String]) -> Result<()> {
+    let today = Utc::now().date();
+    let mut last_week = HashMap::new();
+
+    for done in utility::filter_todos(dones, filters) {
+        if let Some(d) = utility::parse_date(done.done_date.as_ref()) {
+            let task_date = Date::from_utc(d, *today.offset());
+            let delta = (today - task_date).num_days();
+            if delta < n_days as i64 {
+                let entry = last_week.entry(delta).or_insert_with(Vec::new);
+                entry.push(done.clone());
+            }
+        }
+    }
+
+    for i in (0..=6).rev() {
+        match last_week.get(&i) {
+            Some(dones) => {
+                let that_day = today - Duration::days(i);
+                println!("... {} ..........", that_day.format("%Y-%m-%d"));
+                for d in dones {
+                    println!("    {}", d.donesummary_format());
+                }
+                println!();
+            }
+            None => continue,
+        }
+    }
+
+    Ok(())
+}
+
+pub fn due(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+    let todos = utility::filter_todos(todos, filters);
 
     let mut datediffed_todos: Vec<(i64, todo::Todo)> = todos
         .iter()
@@ -65,8 +98,8 @@ pub fn due(todos: &[todo::Todo], args: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn no_date(todos: &[todo::Todo], args: &[String]) -> Result<()> {
-    let todos = utility::filter_todos(todos, args);
+pub fn no_date(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+    let todos = utility::filter_todos(todos, filters);
     let undated_todos: Vec<_> = todos.iter().filter(|x| x.due_date.is_none()).collect();
     for &todo in undated_todos.iter().filter(|x| x.pri.is_some()) {
         println!("{}", todo);
