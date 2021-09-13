@@ -20,9 +20,6 @@ impl Todo {
     }
     pub fn matches(&self, positives: &[String], negatives: &[String]) -> bool {
         let taskstr = self.task.clone() + &self.projects.join(" ") + &self.contexts.join(" ");
-        dbg!(&positives);
-        dbg!(&negatives);
-        dbg!(&taskstr);
         let has_all_pos = positives
             .iter()
             .all(|y| Todo::case_insensitive_match(&taskstr, y));

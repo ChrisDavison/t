@@ -5,6 +5,7 @@ edition = "2018"
 license = "GPL-3.0-only"
 name = "t"
 version = "0.36.0"
+
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4.6"
