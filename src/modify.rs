@@ -15,7 +15,6 @@ pub fn append(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Resul
     let n_todos = todos.len();
     if let Some(t) = todos.get_mut(idx) {
         t.append_text(&msg);
-        utility::notify("APPENDED", idx, &t.task);
         Ok(())
     } else {
         Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
@@ -27,7 +26,6 @@ pub fn prepend(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Resu
     let n_todos = todos.len();
     if let Some(t) = todos.get_mut(idx) {
         t.prepend_text(&msg);
-        utility::notify("PREPENDED", idx, &t.task);
         Ok(())
     } else {
         Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
@@ -73,8 +71,12 @@ pub fn archive(todos: &mut Vec<todo::Todo>, dones: &mut Vec<todo::Todo>) -> Resu
     for idx in dones_to_pop.iter().rev() {
         dones.remove(*idx);
     }
-    println!("Archived {} tasks", todos_to_pop.len());
-    println!("Unarchived {} tasks", dones_to_pop.len());
+    if !todos_to_pop.is_empty() {
+        println!("Archived {} tasks", todos_to_pop.len());
+    }
+    if !dones_to_pop.is_empty() {
+        println!("Unarchived {} tasks", dones_to_pop.len());
+    }
 
     Ok(())
 }
@@ -102,7 +104,6 @@ pub fn undo(
         }
         let mut done = dones[i].clone();
         done.mark_undone();
-        utility::notify("UNDONE", todos.len(), &done.task);
         todos.push(done);
         dones.remove(i);
     }

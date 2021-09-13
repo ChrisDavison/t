@@ -1,3 +1,4 @@
+use super::utility;
 use colored::*;
 use std::fmt;
 
@@ -32,41 +33,48 @@ impl Todo {
     pub fn append_text(&mut self, text: &str) {
         self.task.push(' ');
         self.task.push_str(text);
+        utility::notify("APPENDED", self.idx, &self.task);
     }
 
     pub fn prepend_text(&mut self, text: &str) {
         self.task = format!("{} {}", text, self.task);
+        utility::notify("PREPENDED", self.idx, &self.task);
     }
 
     pub fn mark_done(&mut self) {
         self.done_date = Some(crate::utility::get_formatted_date());
+        utility::notify("DONE", self.idx, &self.task);
     }
 
     pub fn mark_undone(&mut self) {
         self.done_date = None;
+        utility::notify("UNDONE", self.idx, &self.task);
     }
 
     pub fn schedule(&mut self, date: &str) {
         self.due_date = Some(String::from(date));
+        utility::notify("SCHEDULED", self.idx, &self.task);
     }
 
     pub fn unschedule(&mut self) {
         self.due_date = None;
+        utility::notify("UNSCHEDULED", self.idx, &self.task);
     }
 
     pub fn schedule_today(&mut self) {
         self.due_date = Some(crate::utility::get_formatted_date());
+        utility::notify("SCHEDULED", self.idx, &self.task);
     }
 
     pub fn format_for_save(&self) -> String {
         let mut to_output: Vec<String> = vec![];
 
-        if let Some(p) = self.pri.as_ref() {
-            to_output.push(format!("({})", p));
-        };
-
         if let Some(done) = &self.done_date {
             to_output.push(format!("x {}", done))
+        };
+
+        if let Some(p) = self.pri.as_ref() {
+            to_output.push(format!("({})", p));
         };
 
         to_output.push(self.task.to_string());

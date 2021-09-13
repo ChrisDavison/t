@@ -126,6 +126,13 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
+    let t_dont_autoarchive = std::env::var("T_DONT_AUTOARCHIVE").unwrap_or("false".to_string());
+    if t_dont_autoarchive.is_empty() || t_dont_autoarchive == "false" {
+        if let Err(err) = modify::archive(&mut todos, &mut dones) {
+            println!("{}", err.to_string());
+            std::process::exit(1);
+        }
+    }
     utility::save_to_file(&todos, std::env::var("TODOFILE")?)?;
     utility::save_to_file(&dones, std::env::var("DONEFILE")?)?;
 
