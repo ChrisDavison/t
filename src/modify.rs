@@ -4,8 +4,9 @@ type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn add(text: &[String], todos: &mut Vec<todo::Todo>) -> Result<()> {
     let mut todo: todo::Todo = text.join(" ").parse()?;
-    utility::notify("ADDED", todos.len(), &todo.task);
     todo.idx = todos.len();
+    utility::notify("ADDED", todos.len(), &todo.task);
+    todos.push(todo);
     Ok(())
 }
 
@@ -71,6 +72,8 @@ pub fn archive(todos: &mut Vec<todo::Todo>, dones: &mut Vec<todo::Todo>) -> Resu
     for idx in dones_to_pop.iter().rev() {
         dones.remove(*idx);
     }
+    println!("Archived {} tasks", todos_to_pop.len());
+    println!("Unarchived {} tasks", dones_to_pop.len());
 
     Ok(())
 }

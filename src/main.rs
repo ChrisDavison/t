@@ -33,7 +33,7 @@ enum Command {
     /// View done tasks, by date, for last N days
     DoneSummary { n_days: usize, filters: Vec<String> },
     /// View scheduled tasks
-    Due { filters: Vec<String> },
+    Due { n_days: usize, filters: Vec<String> },
     /// View unscheduled tasks
     NoDate { filters: Vec<String> },
     /// Move done tasks into DONEFILE
@@ -115,7 +115,7 @@ fn main() -> Result<()> {
         Command::ListDone { filters } => view::done(&dones, &filters),
         Command::DoneSummary { n_days, filters } => view::done_summary(&dones, n_days, &filters),
         // ========== Date-based views
-        Command::Due { filters } => view::due(&todos, &filters),
+        Command::Due { n_days, filters } => view::due(&todos, n_days, &filters),
         Command::NoDate { filters } => view::no_date(&todos, &filters),
         // ========== Date-based views
         Command::Archive => modify::archive(&mut todos, &mut dones),
@@ -212,6 +212,7 @@ fn parse_pico() -> Result<Command> {
         },
 
         Some("due") => Command::Due {
+            n_days: pargs.opt_free_from_str()?.unwrap_or(7),
             filters: rest_as_strings(pargs),
         },
         Some("nodate" | "nd") => Command::NoDate {

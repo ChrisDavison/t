@@ -146,7 +146,7 @@ impl std::str::FromStr for Todo {
 
 impl fmt::Display for Todo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut to_colour: Vec<String> = vec![format!("{:4}.", self.idx)];
+        let mut to_colour: Vec<String> = vec![format!("{:3}.", self.idx)];
 
         if let Some(p) = self.pri.as_ref() {
             to_colour.push(format!("({})", p));
@@ -165,10 +165,10 @@ impl fmt::Display for Todo {
         let to_colour = to_colour.join(" ");
 
         let pre = match self.pri.as_deref() {
-            Some("A") => to_colour.yellow(),
-            Some("B") => to_colour.green(),
-            Some("C") => to_colour.blue(),
-            _ => to_colour.white(),
+            Some("A") => to_colour.yellow().to_string(),
+            Some("B") => to_colour.green().to_string(),
+            Some("C") => to_colour.blue().to_string(),
+            _ => to_colour,
         };
 
         let mut to_output = vec![pre.to_string()];

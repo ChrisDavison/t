@@ -83,7 +83,7 @@ pub fn done_summary(dones: &[todo::Todo], n_days: usize, filters: &[String]) -> 
     Ok(())
 }
 
-pub fn due(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+pub fn due(todos: &[todo::Todo], n_days: usize, filters: &[String]) -> Result<()> {
     let todos = utility::filter_todos(todos, filters);
 
     let mut datediffed_todos: Vec<(i64, todo::Todo)> = todos
@@ -92,8 +92,19 @@ pub fn due(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
         .map(|x| (days_overdue(x), x.to_owned()))
         .collect();
     datediffed_todos.sort_by(|(datediff1, _), (datediff2, _)| datediff2.cmp(datediff1));
-    for (_, t) in datediffed_todos {
-        println!("{}", t);
+    for (days_overdue, t) in datediffed_todos {
+        let pre = if days_overdue > 0 {
+            format!("OVERDUE {} days:", days_overdue)
+        } else if days_overdue == 0 {
+            format!("TODAY:")
+        } else {
+            let days_till = days_overdue.abs() as usize;
+            if days_till > n_days {
+                continue;
+            }
+            format!("IN {} days:", days_till)
+        };
+        println!("{:15} {}", pre, t);
     }
     Ok(())
 }
