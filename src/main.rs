@@ -97,7 +97,8 @@ fn main() -> Result<()> {
     let num_todos_at_start = todos.len();
     let num_done_at_start = dones.len();
 
-    let result = match parse_pico()? {
+    let (command, mut autoarchive) = parse_pico()?;
+    let result = match command {
         // ========== Modification
         Command::Add { text } => modify::add(&text, &mut todos),
         Command::Append { idx, text } => modify::append(idx, &mut todos, &text),
@@ -118,7 +119,10 @@ fn main() -> Result<()> {
         Command::Due { n_days, filters } => view::due(&todos, n_days, &filters),
         Command::NoDate { filters } => view::no_date(&todos, &filters),
         // ========== Date-based views
-        Command::Archive => modify::archive(&mut todos, &mut dones),
+        Command::Archive => {
+            autoarchive = false;
+            modify::archive(&mut todos, &mut dones)
+        }
     };
 
     if let Err(err) = result {
@@ -126,8 +130,7 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    let t_dont_autoarchive = std::env::var("T_DONT_AUTOARCHIVE").unwrap_or("false".to_string());
-    if t_dont_autoarchive.is_empty() || t_dont_autoarchive == "false" {
+    if autoarchive {
         if let Err(err) = modify::archive(&mut todos, &mut dones) {
             println!("{}", err.to_string());
             std::process::exit(1);
@@ -145,7 +148,8 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn parse_pico() -> Result<Command> {
+// Return the command to execute, and whether to auto-archive
+fn parse_pico() -> Result<(Command, bool)> {
     let mut pargs = pico_args::Arguments::from_env();
 
     // Help has a higher priority and should be handled separately.
@@ -153,6 +157,11 @@ fn parse_pico() -> Result<Command> {
         println!("{}", USAGE);
         std::process::exit(0);
     }
+
+    let t_dont_autoarchive_env = std::env::var("T_DONT_AUTOARCHIVE").unwrap_or("false".to_string());
+    let autoarchive = pargs.contains(["-a", "--autoarchive"])
+        || t_dont_autoarchive_env.is_empty()
+        || t_dont_autoarchive_env == "false";
 
     let rest_as_strings = |pargs: pico_args::Arguments| {
         pargs
@@ -234,7 +243,7 @@ fn parse_pico() -> Result<Command> {
         }
     };
 
-    Ok(command)
+    Ok((command, autoarchive))
 }
 
 mod do_to_each {
