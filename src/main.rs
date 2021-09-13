@@ -1,96 +1,89 @@
-use structopt::StructOpt;
+extern crate anyhow;
 
 mod modify;
-mod schedule;
 mod todo;
 mod utility;
 mod view;
 
-#[derive(StructOpt, Debug)]
-// #[structopt(name="t", setting=AppSettings::InferSubcommands)]
 enum Command {
     /// Add a task
-    #[structopt(alias = "a")]
     Add { text: Vec<String> },
     /// Append text to a task
-    #[structopt(alias = "app")]
     Append { idx: usize, text: Vec<String> },
     /// Prepend text to a task
-    #[structopt(alias = "pre")]
     Prepend { idx: usize, text: Vec<String> },
     /// Remove a task
-    #[structopt(alias = "rm")]
     Remove { idxs: Vec<usize> },
     /// Move task to DONEFILE
-    Do { idx: Vec<usize> },
+    Do { idxs: Vec<usize> },
     /// Move task from DONEFILE to TODOFILE
-    Undo { idx: Vec<usize> },
+    Undo { idxs: Vec<usize> },
     /// Schedule a task
-    Schedule { idx: Vec<usize>, date: String },
+    Schedule { idxs: Vec<usize>, date: String },
     /// Remove due date from task
-    Unschedule { idx: Vec<usize> },
+    Unschedule { idxs: Vec<usize> },
     /// Schedule task today
-    Today { idx: Vec<usize> },
+    Today { idxs: Vec<usize> },
     /// View tasks
-    #[structopt(alias = "ls")]
     List { filters: Vec<String> },
     /// View tasks with a priority
-    #[structopt(alias = "lsp")]
     ListPriority { filters: Vec<String> },
     /// View done tasks
-    #[structopt(alias = "lsd")]
     ListDone { filters: Vec<String> },
     /// View scheduled tasks
     Due { filters: Vec<String> },
     /// View unscheduled tasks
     NoDate { filters: Vec<String> },
+    /// Move done tasks into DONEFILE
+    Archive,
 }
 
 #[allow(dead_code)]
-const USAGE: &str = "usage: t <CMD> [+filter...] [-filter...] [ARGS...]
+const USAGE: &str = "usage: t <COMMAND> [ARGS]...
 
 Filters only apply to viewing (not modification) commands.  They are
 case-insensitive, and will show todos matching all `+` and no `-` filters.
 
 Note:
-    TODO refers to variable defined by '$TODOFILE'
-    DONE refers to variable defined by '$DONEFILE'
+    TODOS are defined in '$TODOFILE', following todo.txt syntax
+    DONES are defined in '$DONEFILE', following todo.txt syntax
     IDX refers to the number of the task you wish to modify
     Words in square brackets are short-aliases
 
 Commands:
-    add TEXT...             [a] Add a task
-    append IDX TEXT...      [app] Append TEXT... to task
-    prepend IDX TEXT...     [pre] Prepend TEXT... to task
-    remove IDX              [rm] Remove task
-    do IDX                  Move task to DONE
-    undo IDX                Move task from DONE to TODO
+    add TEXT...              [a] Add a task
+    append IDX TEXT...       [app] Append TEXT... to task
+    prepend IDX TEXT...      [pre] Prepend TEXT... to task
+    remove IDX               [rm|del] Remove task
+    do IDX                   Move task to DONE
+    undo IDX                 Move task from DONE to TODO
 
-    schedule IDX [DATE]     Schedule task
-    unschedule IDX          Remove due date from task
-    today IDX               Schedule task for today
+    schedule IDX DATE        Schedule task
+    unschedule IDX           Remove due date from task
+    today IDX                Schedule task for today
 
-    list                    [ls] View tasks
-    listdone                [lsd|done] View done tasks
-    listpriority            [lsp] View tasks with a priority
-    due                     View scheduled tasks
-    nodate                  [nd] View unscheduled tasks
-    help                    View this message
-";
+    list [FILTER]...         [ls] View tasks
+    listdone [FILTER]...     [lsd|done] View done tasks
+    listpriority [FILTER]... [lsp] View tasks with a priority
+    due [FILTER]...          View scheduled tasks
+    nodate [FILTER]...       [nd] view unscheduled tasks
+
+    donesummary              view completed tasks in last 7 days
+
+    archive                  move done tasks to archive
+    help                     View this message";
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 fn main() -> Result<()> {
-    let opts = Command::from_args();
-
-    let todos = match utility::get_todos() {
+    let mut todos = match utility::get_todos() {
         Ok(todos) => todos,
         Err(e) => {
             println!("{}", e);
             std::process::exit(1);
         }
     };
-    let dones = match utility::get_dones() {
+    let mut dones = match utility::get_dones() {
         Ok(dones) => dones,
         Err(e) => {
             println!("{}", e);
@@ -98,21 +91,21 @@ fn main() -> Result<()> {
         }
     };
 
-    // let num_todos_at_start = todos.len();
-    // let num_done_at_start = dones.len();
+    let num_todos_at_start = todos.len();
+    let num_done_at_start = dones.len();
 
-    let result = match opts {
+    let result = match parse_pico()? {
         // ========== Modification
-        Command::Add { text } => modify::add(&text),
-        Command::Append { idx, text } => modify::append(idx, &text),
-        Command::Prepend { idx, text } => modify::prepend(idx, &text),
-        Command::Remove { idxs } => modify::remove(&idxs),
-        Command::Do { idx } => modify::do_task(&idx),
-        Command::Undo { idx } => modify::undo(&idx),
+        Command::Add { text } => modify::add(&text, &mut todos),
+        Command::Append { idx, text } => modify::append(idx, &mut todos, &text),
+        Command::Prepend { idx, text } => modify::prepend(idx, &mut todos, &text),
+        Command::Remove { mut idxs } => modify::remove(&mut idxs, &mut todos),
+        Command::Do { mut idxs } => modify::do_task(&mut idxs, &mut todos),
+        Command::Undo { mut idxs } => modify::undo(&mut idxs, &mut todos, &mut dones),
         // ========== SCHEDULING
-        Command::Schedule { idx, date } => schedule::schedule(&idx, &date),
-        Command::Unschedule { idx } => schedule::unschedule(&idx),
-        Command::Today { idx } => schedule::today(&idx),
+        Command::Schedule { mut idxs, date } => do_to_each::schedule(&mut idxs, &mut todos, &date),
+        Command::Unschedule { mut idxs } => do_to_each::unschedule(&mut idxs, &mut todos),
+        Command::Today { mut idxs } => do_to_each::today(&mut idxs, &mut todos),
         // ========== Filtered views
         Command::List { filters } => view::list(&todos, &filters),
         Command::ListPriority { filters } => view::list_priority(&todos, &filters),
@@ -121,6 +114,7 @@ fn main() -> Result<()> {
         Command::Due { filters } => view::due(&todos, &filters),
         Command::NoDate { filters } => view::no_date(&todos, &filters),
         // ========== Date-based views
+        Command::Archive => modify::archive(&mut todos, &mut dones),
     };
 
     if let Err(err) = result {
@@ -128,11 +122,134 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    // if num_todos_at_start != 0 && utility::get_todos()?.is_empty() {
-    //     println!("TODOFILE is now empty");
-    // }
-    // if num_done_at_start != 0 && utility::get_dones()?.is_empty() {
-    //     println!("DONEFILE is now empty");
-    // }
+    utility::save_to_file(&todos, std::env::var("TODOFILE")?)?;
+    utility::save_to_file(&dones, std::env::var("DONEFILE")?)?;
+
+    if num_todos_at_start != 0 && todos.is_empty() {
+        println!("TODOFILE is now empty");
+    }
+    if num_done_at_start != 0 && dones.is_empty() {
+        println!("DONEFILE is now empty");
+    }
     Ok(())
+}
+
+fn parse_pico() -> Result<Command> {
+    let mut pargs = pico_args::Arguments::from_env();
+
+    // Help has a higher priority and should be handled separately.
+    if pargs.contains(["-h", "--help"]) {
+        println!("{}", USAGE);
+        std::process::exit(0);
+    }
+
+    let rest_as_strings = |pargs: pico_args::Arguments| {
+        pargs
+            .finish()
+            .iter()
+            .map(|x| x.to_string_lossy().to_string())
+            .collect::<Vec<String>>()
+    };
+
+    let rest_as_usizes = |pargs: pico_args::Arguments| {
+        rest_as_strings(pargs)
+            .iter()
+            .map(|x| x.parse().expect("Failed to parse indice"))
+            .collect()
+    };
+
+    let command = match pargs.subcommand()?.as_deref() {
+        Some("help" | "h") => {
+            println!("{}", USAGE);
+            std::process::exit(0);
+        }
+        Some("add" | "a") => Command::Add {
+            text: rest_as_strings(pargs),
+        },
+        Some("append" | "app") => Command::Append {
+            idx: pargs.free_from_str()?,
+            text: rest_as_strings(pargs),
+        },
+        Some("prepend" | "pre") => Command::Prepend {
+            idx: pargs.free_from_str()?,
+            text: rest_as_strings(pargs),
+        },
+        Some("remove" | "rm" | "delete" | "del") => Command::Remove {
+            idxs: rest_as_usizes(pargs),
+        },
+        Some("do") => Command::Do {
+            idxs: rest_as_usizes(pargs),
+        },
+        Some("undo") => Command::Undo {
+            idxs: rest_as_usizes(pargs),
+        },
+        Some("schedule") => Command::Schedule {
+            date: pargs.free_from_str()?,
+            idxs: rest_as_usizes(pargs),
+        },
+        Some("unschedule") => Command::Unschedule {
+            idxs: rest_as_usizes(pargs),
+        },
+        Some("today") => Command::Today {
+            idxs: rest_as_usizes(pargs),
+        },
+        Some("list" | "ls") => Command::List {
+            filters: rest_as_strings(pargs),
+        },
+        Some("listpriority" | "lsp") => Command::ListPriority {
+            filters: rest_as_strings(pargs),
+        },
+        Some("listdone" | "lsd" | "done") => Command::ListDone {
+            filters: rest_as_strings(pargs),
+        },
+        Some("due") => Command::Due {
+            filters: rest_as_strings(pargs),
+        },
+        Some("nodate" | "nd") => Command::NoDate {
+            filters: rest_as_strings(pargs),
+        },
+        Some("archive") => Command::Archive,
+        // CATCH ALL FOR UNRECOGNISED COMMAND
+        unrecognised => {
+            println!("Command {:#?} not recognised.", unrecognised);
+            println!("{}", USAGE);
+            std::process::exit(1);
+        }
+    };
+
+    Ok(command)
+}
+
+mod do_to_each {
+    use super::*;
+    pub fn unschedule(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+        for i in utility::parse_reversed_indices(args)? {
+            if i >= todos.len() {
+                continue;
+            }
+            todos[i].due_date = None;
+            todos[i].unschedule();
+            utility::notify("UNSCHEDULED", i, &todos[i].task);
+        }
+        Ok(())
+    }
+
+    pub fn today(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+        let t_str = utility::get_formatted_date();
+        for i in utility::parse_reversed_indices(args)? {
+            todos[i].due_date = Some(t_str.clone());
+            todos[i].schedule_today();
+            utility::notify("TODAY", i, &todos[i].task);
+        }
+        Ok(())
+    }
+
+    pub fn schedule(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>, date: &str) -> Result<()> {
+        for i in utility::parse_reversed_indices(args)? {
+            todos[i].due_date = Some(date.to_string());
+            todos[i].schedule(date);
+            utility::notify("SCHEDULED", i, &todos[i].task);
+        }
+        Ok(())
+    }
 }

@@ -1,102 +1,106 @@
 use super::{todo, utility};
 
-use std::env;
-
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn add(text: &[String]) -> Result<()> {
-    let mut todos = utility::get_todos()?;
+pub fn add(text: &[String], todos: &mut Vec<todo::Todo>) -> Result<()> {
     let mut todo: todo::Todo = text.join(" ").parse()?;
     utility::notify("ADDED", todos.len(), &todo.task);
     todo.idx = todos.len();
-    todos.push(todo);
-    utility::save_to_file(&todos, env::var("TODOFILE")?)
+    Ok(())
 }
 
-pub fn append(idx: usize, text: &[String]) -> Result<()> {
-    let mut todos = utility::get_todos()?;
-    if todos.len() < idx {
-        return Err(From::from(format!(
-            "IDX must be < {} (number of tasks)",
-            todos.len()
-        )));
-    }
+pub fn append(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Result<()> {
     let msg: String = text.iter().skip(1).cloned().collect();
-    let mut new = &mut todos[idx];
-    new.task = format!("{} {}", new.task, msg);
-    utility::notify("APPENDED", idx, &new.task);
-    todos[idx] = new.clone();
-    utility::save_to_file(&todos, env::var("TODOFILE")?)
-}
-
-pub fn prepend(idx: usize, text: &[String]) -> Result<()> {
-    let mut todos = utility::get_todos()?;
-    if todos.len() < idx {
-        return Err(From::from(format!(
-            "IDX must be < {} (number of tasks)",
-            todos.len()
-        )));
+    let n_todos = todos.len();
+    if let Some(t) = todos.get_mut(idx) {
+        t.append_text(&msg);
+        utility::notify("APPENDED", idx, &t.task);
+        Ok(())
+    } else {
+        Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
     }
-    let msg: String = text.iter().skip(1).cloned().collect();
-    let mut new = &mut todos[idx];
-    new.task = format!("{} {}", msg, new.task);
-    utility::notify("PREPENDED", idx, &new.task);
-    todos[idx] = new.clone();
-    utility::save_to_file(&todos, env::var("TODOFILE")?)
 }
 
-pub fn remove(idx: &[usize]) -> Result<()> {
-    let mut todos = utility::get_todos()?;
-    for i in utility::parse_reversed_indices(idx)? {
+pub fn prepend(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Result<()> {
+    let msg: String = text.iter().skip(1).cloned().collect();
+    let n_todos = todos.len();
+    if let Some(t) = todos.get_mut(idx) {
+        t.prepend_text(&msg);
+        utility::notify("PREPENDED", idx, &t.task);
+        Ok(())
+    } else {
+        Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
+    }
+}
+
+pub fn remove(idx: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    idx.sort_unstable();
+    for &i in idx.iter().rev() {
         if i >= todos.len() {
             continue;
         }
         utility::notify("REMOVED", i, &todos[i].task);
         todos.remove(i);
     }
-    utility::save_to_file(&todos, env::var("TODOFILE")?)
+    Ok(())
 }
 
-pub fn do_task(args: &[usize]) -> Result<()> {
-    if args.is_empty() {
-        return Err(From::from("usage: t do IDX"));
+pub fn archive(todos: &mut Vec<todo::Todo>, dones: &mut Vec<todo::Todo>) -> Result<()> {
+    let mut todos_to_pop = Vec::new();
+    let mut dones_to_pop = Vec::new();
+
+    // Add DONE _todos_ to DONES
+    for (i, todo) in todos.iter().enumerate() {
+        if todo.done_date.is_some() {
+            dones.push(todo.clone());
+            todos_to_pop.push(i);
+        }
     }
-    let mut todos = utility::get_todos()?;
-    let mut dones = utility::get_dones()?;
-    for i in utility::parse_reversed_indices(args)? {
+    // Add UNDONE _dones_ to TODOS
+    for (i, done) in dones.iter().enumerate() {
+        if done.done_date.is_none() {
+            todos.push(done.clone());
+            dones_to_pop.push(i);
+        }
+    }
+    // Remove DONE todos
+    for idx in todos_to_pop.iter().rev() {
+        todos.remove(*idx);
+    }
+    // Remove UNDONE dones
+    for idx in dones_to_pop.iter().rev() {
+        dones.remove(*idx);
+    }
+
+    Ok(())
+}
+
+pub fn do_task(indices: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    indices.sort_unstable();
+    for &i in indices.iter().rev() {
         if i >= todos.len() {
             continue;
         }
-        let mut done_task = todos[i].clone();
-        done_task
-            .kws
-            .insert("done".to_string(), utility::get_formatted_date());
-        utility::notify(
-            "COMPLETE",
-            i,
-            &format!("{} {}", done_task.kws["done"], &todos[i].task),
-        );
-        dones.push(done_task.clone());
-        todos.remove(i);
+        todos[i].mark_done();
     }
-
-    utility::save_to_file(&todos, env::var("TODOFILE")?)?;
-    utility::save_to_file(&dones, env::var("DONEFILE")?)
+    Ok(())
 }
 
-pub fn undo(args: &[usize]) -> Result<()> {
-    let mut todos = utility::get_todos()?;
-    let mut dones = utility::get_dones()?;
-    for i in utility::parse_reversed_indices(args)? {
+pub fn undo(
+    indices: &mut Vec<usize>,
+    todos: &mut Vec<todo::Todo>,
+    dones: &mut Vec<todo::Todo>,
+) -> Result<()> {
+    indices.sort_unstable();
+    for &i in indices.iter().rev() {
         if i >= dones.len() {
             return Err(From::from("IDX must be within range of num done"));
         }
-        let done = dones[i].clone();
+        let mut done = dones[i].clone();
+        done.mark_undone();
         utility::notify("UNDONE", todos.len(), &done.task);
         todos.push(done);
         dones.remove(i);
     }
-
-    utility::save_to_file(&todos, env::var("TODOFILE")?)?;
-    utility::save_to_file(&dones, env::var("DONEFILE")?)
+    Ok(())
 }

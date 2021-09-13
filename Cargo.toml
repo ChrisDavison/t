@@ -1,15 +1,12 @@
 [package]
-name = "t"
-version = "0.35.0"
 authors = ["Chris Davison <c.jr.davison@gmail.com>"]
+description = "Streamlined implementation of todo.txt based on the features, formatting, and plugins that I used."
 edition = "2018"
 license = "GPL-3.0-only"
-description = "Streamlined implementation of todo.txt based on the features, formatting, and plugins that I used."
-
+name = "t"
+version = "0.36.0"
 [dependencies]
-chrono="0.4.6"
-regex="1.1.0"
-lazy_static = "1.4.0"
 anyhow = "1.0"
-structopt = "0.3"
+chrono = "0.4.6"
 colored = "*"
+pico-args = "*"

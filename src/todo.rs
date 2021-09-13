@@ -1,30 +1,15 @@
 use colored::*;
 use std::fmt;
 
-use lazy_static::lazy_static;
-use regex::Regex;
-use std::collections::HashMap;
-
-lazy_static! {
-    static ref RE_CONTEXT: Regex =
-        Regex::new(r"@([a-zA-Z0-9\-]+)").expect("Couldn't compile context regex");
-    static ref RE_TAG: Regex =
-        Regex::new(r"\+([a-zA-Z0-9\-]+)").expect("Couldn't compile tag regex");
-    static ref RE_PRI: Regex =
-        Regex::new(r"^\(([a-zA-Z]+)\)").expect("Couldn't compile priority regex");
-    static ref RE_KEYWORD: Regex =
-        Regex::new(r"([a-zA-Z]+):([a-zA-Z0-9\-]+)").expect("Couldn't compile keyword regex");
-    pub static ref RE_SPC: Regex = Regex::new(r"\s\s+").expect("Couldn't compile space regex");
-}
-
 #[derive(Clone, Debug)]
 pub struct Todo {
     pub idx: usize,
     pub task: String,
-    pub pri: String,
-    pub kws: HashMap<String, String>,
+    pub pri: Option<String>,
     pub projects: Vec<String>,
-    pub tags: Vec<String>,
+    pub contexts: Vec<String>,
+    pub done_date: Option<String>,
+    pub due_date: Option<String>,
 }
 
 impl Todo {
@@ -34,7 +19,10 @@ impl Todo {
             .contains(&needle.to_ascii_lowercase())
     }
     pub fn matches(&self, positives: &[String], negatives: &[String]) -> bool {
-        let taskstr = self.task.clone() + &self.projects.join(" ") + &self.tags.join(" ");
+        let taskstr = self.task.clone() + &self.projects.join(" ") + &self.contexts.join(" ");
+        dbg!(&positives);
+        dbg!(&negatives);
+        dbg!(&taskstr);
         let has_all_pos = positives
             .iter()
             .all(|y| Todo::case_insensitive_match(&taskstr, y));
@@ -43,86 +31,145 @@ impl Todo {
             .any(|y| Todo::case_insensitive_match(&taskstr, y));
         has_all_pos && has_no_neg
     }
+
+    pub fn append_text(&mut self, text: &str) {
+        self.task.push(' ');
+        self.task.push_str(text);
+    }
+
+    pub fn prepend_text(&mut self, text: &str) {
+        self.task = format!("{} {}", text, self.task);
+    }
+
+    pub fn mark_done(&mut self) {
+        self.done_date = Some(crate::utility::get_formatted_date());
+    }
+
+    pub fn mark_undone(&mut self) {
+        self.done_date = None;
+    }
+
+    pub fn schedule(&mut self, date: &str) {
+        self.due_date = Some(String::from(date));
+    }
+
+    pub fn unschedule(&mut self) {
+        self.due_date = None;
+    }
+
+    pub fn schedule_today(&mut self) {
+        self.due_date = Some(crate::utility::get_formatted_date());
+    }
+
+    pub fn format_for_save(&self) -> String {
+        let mut to_output: Vec<String> = vec![];
+
+        if let Some(p) = self.pri.as_ref() {
+            to_output.push(format!("({})", p));
+        };
+
+        if let Some(done) = &self.done_date {
+            to_output.push(format!("x {}", done))
+        };
+
+        to_output.push(self.task.to_string());
+
+        if let Some(due) = &self.due_date {
+            to_output.push(format!("due:{}", due))
+        };
+
+        let projects: String = self.projects.join(" ");
+        if !projects.is_empty() {
+            to_output.push(projects);
+        }
+
+        let contexts: String = self.contexts.join(" ");
+        if !contexts.is_empty() {
+            to_output.push(contexts);
+        }
+
+        to_output.join(" ")
+    }
 }
 
 // Implement .parse() for Todo
 impl std::str::FromStr for Todo {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut task = s.to_string();
-        let mut projects = Vec::new();
-        let mut pri = String::new();
-        for cap in RE_PRI.captures_iter(s) {
-            pri = cap[1].to_string();
-            // task = task.replace(&cap[0], "").to_string();
-        }
+        let parts: Vec<_> = s.split_whitespace().collect();
+        let (parts, contexts): (Vec<&str>, Vec<&str>) =
+            parts.iter().partition(|p| !p.starts_with('@'));
+        let (parts, projects): (Vec<&str>, Vec<&str>) =
+            parts.iter().partition(|p| !p.starts_with('+'));
+        let (parts, done_date) = if parts[0] == "x" {
+            (parts[2..].to_vec(), Some(parts[1].to_string()))
+        } else {
+            (parts, None)
+        };
+        let (parts, priority) = if parts[0].starts_with('(') && parts[0].ends_with(')') {
+            (parts[1..].to_vec(), Some(parts[0][1..2].to_string()))
+        } else {
+            (parts, None)
+        };
 
-        for cap in RE_CONTEXT.captures_iter(s) {
-            projects.push(cap[1].to_string());
-            task = task.replace(&cap[0], "").to_string();
-        }
-
-        let mut tags = Vec::new();
-        for cap in RE_TAG.captures_iter(&task.clone()) {
-            tags.push(cap[1].to_string());
-            task = task.replace(&cap[0], "").to_string();
-        }
-
-        let mut kws = HashMap::new();
-        for cap in RE_KEYWORD.captures_iter(&task.clone()) {
-            kws.insert(cap[1].to_string(), cap[2].to_string());
-            task = task.replace(&cap[0], "").to_string();
-        }
+        let (task_parts, due_date_maybe): (Vec<&str>, Vec<&str>) =
+            parts.iter().partition(|x| !x.starts_with("due:"));
+        let task = task_parts.join(" ");
+        let due_date = due_date_maybe
+            .get(0)
+            .map(|x| x.split(':').nth(1).unwrap().to_string());
 
         Ok(Todo {
             idx: 0,
             task,
-            pri,
-            kws,
-            projects,
-            tags,
+            pri: priority,
+            projects: projects.iter().map(|x| x.to_string()).collect(),
+            contexts: contexts.iter().map(|x| x.to_string()).collect(),
+            done_date,
+            due_date,
         })
     }
 }
 
 impl fmt::Display for Todo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let d = self.kws.get("due").unwrap_or(&String::new()).to_string();
-        let dd = self.kws.get("done").unwrap_or(&String::new()).to_string();
-        let projects = self
-            .projects
-            .iter()
-            .map(|x| String::from("@") + x)
-            .collect::<Vec<String>>()
-            .join(" ");
-        let tags = self
-            .tags
-            .iter()
-            .map(|x| String::from("+") + x)
-            .collect::<Vec<String>>()
-            .join(" ");
-        let keywords = self
-            .kws
-            .iter()
-            .filter(|(k, _)| k != &"due" && k != &"done")
-            .map(|(k, v)| format!("{}:{}", k, v))
-            .collect::<Vec<String>>()
-            .join(" ");
-        let pre = format!(
-            "{:4}. {}{:11}{}",
-            self.idx,
-            dd,
-            d,
-            self.task.trim_end_matches(" ")
-        );
-        let pre = match self.pri.as_ref() {
-            "A" => pre.yellow(),
-            "B" => pre.green(),
-            "C" => pre.blue(),
-            _ => pre.white(),
+        let mut to_colour: Vec<String> = vec![format!("{:4}.", self.idx)];
+
+        if let Some(p) = self.pri.as_ref() {
+            to_colour.push(format!("({})", p));
         };
-        let post = format!("{} {} {}", projects.red(), tags.red(), keywords);
-        let post = RE_SPC.replace(&post, " ");
-        write!(f, "{} {}", pre, post)
+
+        if let Some(done) = &self.done_date {
+            to_colour.push(format!("x {}", done))
+        };
+
+        to_colour.push(self.task.to_string());
+
+        if let Some(due) = &self.due_date {
+            to_colour.push(format!("due:{}", due))
+        };
+
+        let to_colour = to_colour.join(" ");
+
+        let pre = match self.pri.as_deref() {
+            Some("A") => to_colour.yellow(),
+            Some("B") => to_colour.green(),
+            Some("C") => to_colour.blue(),
+            _ => to_colour.white(),
+        };
+
+        let mut to_output = vec![pre.to_string()];
+
+        let projects: String = self.projects.join(" ");
+        if !projects.is_empty() {
+            to_output.push(projects.red().to_string());
+        }
+
+        let contexts: String = self.contexts.join(" ");
+        if !contexts.is_empty() {
+            to_output.push(contexts.red().to_string());
+        }
+
+        write!(f, "{}", to_output.join(" "))
     }
 }

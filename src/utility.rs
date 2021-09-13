@@ -1,10 +1,11 @@
 use std::env;
 use std::fs;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 
-use super::todo::{Todo, RE_SPC};
+use super::todo::Todo;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
@@ -16,29 +17,19 @@ pub fn get_formatted_date() -> String {
     Utc::now().format("%Y-%m-%d").to_string()
 }
 
-pub fn filter_todos(todos: &[Todo], args: &[String]) -> (Vec<Todo>, Vec<String>) {
-    let mut positives: Vec<String> = Vec::new();
-    let mut negatives: Vec<String> = Vec::new();
-    let mut raw_args: Vec<String> = Vec::new();
-    for arg in args {
-        match arg.chars().next().expect("Couldn't read char of query arg") {
-            '+' => positives.push(arg[1..].to_owned()),
-            '-' => negatives.push(arg[1..].to_owned()),
-            _ => raw_args.push(arg.to_owned()),
-        }
-    }
-    let todos_filtered = todos
+pub fn filter_todos(todos: &[Todo], filters: &[String]) -> Vec<Todo> {
+    let (negatives, positives): (Vec<_>, Vec<_>) = filters
         .iter()
-        .filter(|x| x.matches(&positives[..], &negatives[..]))
+        .map(|x| x.to_string())
+        .partition(|x| x.starts_with('-'));
+    todos
+        .iter()
+        .filter(|x| x.matches(&positives, &negatives))
         .cloned()
-        .collect();
-    (todos_filtered, raw_args)
+        .collect()
 }
 
-fn parse_file<T: Into<String>>(filename: &T) -> Result<Vec<Todo>>
-where
-    T: std::convert::AsRef<std::path::Path>,
-{
+fn parse_file(filename: &Path) -> Result<Vec<Todo>> {
     let mut f = std::fs::File::open(filename).expect("Couldn't open file");
     let mut contents = String::new();
     f.read_to_string(&mut contents)
@@ -58,48 +49,25 @@ where
 
 pub fn get_todos() -> Result<Vec<Todo>> {
     let todofile = env::var("TODOFILE").map_err(|_| "TODOFILE env var not set")?;
-    parse_file(&todofile)
+    parse_file(&PathBuf::from(todofile))
 }
 
 pub fn get_dones() -> Result<Vec<Todo>> {
     let donefile = env::var("DONEFILE").map_err(|_| "DONEFILE not set")?;
-    parse_file(&donefile)
+    parse_file(&PathBuf::from(donefile))
 }
 
 pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
-    let mut str_out = String::new();
-    for todo in todos {
-        let kw_string = todo
-            .kws
-            .iter()
-            .map(|(k, v)| format!("{}:{}", k, v))
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let project_string = todo
-            .projects
-            .iter()
-            .map(|p| format!("@{}", p))
-            .collect::<Vec<String>>()
-            .join(" ");
-
-        let tag_string = todo
-            .tags
-            .iter()
-            .map(|p| format!("+{}", p))
-            .collect::<Vec<String>>()
-            .join(" ");
-        let todo_out_str = &format!(
-            "{} {} {} {}\n",
-            todo.task, project_string, tag_string, kw_string,
-        );
-        str_out.push_str(&RE_SPC.replace(todo_out_str, " ").to_string())
-    }
-    fs::write(filename, str_out).expect("Couldn't write todos to file");
+    let todo_str = todos
+        .iter()
+        .map(|x| x.format_for_save())
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(filename, todo_str).expect("Couldn't write todos to file");
     Ok(())
 }
 
-pub fn parse_reversed_indices(idxs: &[usize]) -> Result<Vec<usize>> {
+pub fn parse_reversed_indices(idxs: &mut Vec<usize>) -> Result<Vec<usize>> {
     let mut idx = idxs.to_vec();
     idx.sort_unstable();
     idx.reverse();
