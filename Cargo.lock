@@ -97,7 +97,7 @@ checksum = "db8bcd96cb740d03149cbad5518db9fd87126a10ab519c011893b1754134c468"
 
 [[package]]
 name = "t"
-version = "0.36.0"
+version = "0.37.0"
 dependencies = [
  "anyhow",
  "chrono",

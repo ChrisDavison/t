@@ -36,6 +36,7 @@ pub fn prepend(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Resu
 
 pub fn remove(idx: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
     idx.sort_unstable();
+    // reverse so that we always pop from the end of the list
     for &i in idx.iter().rev() {
         if i >= todos.len() {
             continue;
