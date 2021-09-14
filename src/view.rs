@@ -1,4 +1,7 @@
-use super::{todo::Todo, utility};
+use super::{
+    todo::Todo,
+    utility::{self, todo_filter},
+};
 
 use chrono::{Date, Duration, NaiveDate, Utc};
 use std::collections::HashMap;
@@ -17,12 +20,13 @@ pub fn days_overdue(t: &Todo) -> i64 {
 }
 
 pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let mut todos = utility::filter_todos(todos, filters);
-    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
-    for todo in todos.iter().filter(|x| x.pri.is_some()) {
-        println!("{}", todo);
-    }
-    for todo in todos.iter().filter(|x| x.pri.is_none()) {
+    let mut todos: Vec<Todo> = todo_filter(todos, filters).cloned().collect();
+    todos.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
+        (Some(a), Some(b)) => a.cmp(b),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        _ => std::cmp::Ordering::Greater,
+    });
+    for todo in todos {
         println!("{}", todo);
     }
 
@@ -30,22 +34,27 @@ pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
 }
 
 pub fn list_priority(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let mut todos = utility::filter_todos(todos, filters);
-    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
-    for todo in todos.iter().filter(|x| x.pri.is_some()) {
+    let mut todos = todos.to_vec();
+    todos.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
+        (Some(a), Some(b)) => a.cmp(b),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        _ => std::cmp::Ordering::Greater,
+    });
+    for todo in todo_filter(&todos, filters).filter(|t| t.pri.is_some()) {
         println!("{}", todo);
     }
     Ok(())
 }
 
 pub fn done(dones: &[Todo], filters: &[String]) -> Result<()> {
-    let mut todos = utility::filter_todos(dones, filters);
-    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
-    for todo in todos.iter().filter(|x| x.pri.is_some()) {
-        println!("{}", todo);
-    }
-    for todo in todos.iter().filter(|x| x.pri.is_none()) {
-        println!("{}", todo);
+    let mut dones = dones.to_vec();
+    dones.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
+        (Some(a), Some(b)) => a.cmp(b),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        _ => std::cmp::Ordering::Greater,
+    });
+    for done in todo_filter(&dones, filters) {
+        println!("{}", done);
     }
 
     Ok(())
@@ -113,12 +122,17 @@ pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
 }
 
 pub fn no_date(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let todos = utility::filter_todos(todos, filters);
-    let undated_todos: Vec<_> = todos.iter().filter(|x| x.due_date.is_none()).collect();
-    for &todo in undated_todos.iter().filter(|x| x.pri.is_some()) {
-        println!("{}", todo);
-    }
-    for todo in undated_todos.iter().filter(|x| x.pri.is_none()) {
+    let mut undated_todos: Vec<Todo> = todo_filter(todos, filters)
+        .filter(|todo| todo.due_date.is_none())
+        .cloned()
+        .collect();
+    undated_todos.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
+        (Some(a), Some(b)) => a.cmp(b),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        _ => std::cmp::Ordering::Greater,
+    });
+
+    for todo in undated_todos {
         println!("{}", todo);
     }
 
