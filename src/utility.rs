@@ -69,18 +69,13 @@ pub fn parse_date(date: Option<&String>) -> Option<NaiveDate> {
         .flatten()
 }
 
-#[allow(unused_imports)]
-#[cfg(test)]
 pub fn date_today() -> Date<Utc> {
-    // Mon, September 13
-    Utc.ymd(2021, 09, 13)
-}
-
-#[allow(unused_imports)]
-#[cfg(not(test))]
-pub fn date_today() -> Date<Utc> {
-    // Mon, September 13
-    Utc::today()
+    if cfg!(test) {
+        // Mon, September 13
+        Utc.ymd(2021, 09, 13)
+    } else {
+        Utc::today()
+    }
 }
 
 pub fn parse_date_string_relative(date: Date<Utc>, s: &str) -> String {
@@ -117,7 +112,7 @@ mod tests {
 
     #[test]
     fn iter_date_till_sat() {
-        let mut now = Utc.ymd(2021, 9, 13); // Mon, 13 September
+        let mut now = date_today();
         let want = Utc.ymd(2021, 9, 18); // Sat, 18 September
 
         now = iter_till_day_of_week(now, 6);
@@ -126,7 +121,7 @@ mod tests {
 
     #[test]
     fn date_from_string() {
-        let now = Utc.ymd(2021, 9, 13); // Mon, 13 September
+        let now = date_today();
         assert_eq!(parse_date_string_relative(now, "thursday"), "2021-09-16");
         assert_eq!(parse_date_string_relative(now, "tomorrow"), "2021-09-14");
         assert_eq!(parse_date_string_relative(now, "weekend"), "2021-09-18");
