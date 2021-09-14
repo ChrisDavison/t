@@ -6,7 +6,7 @@ use std::collections::HashMap;
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn days_overdue(t: &todo::Todo) -> i64 {
-    let now: Date<Utc> = Utc::now().date();
+    let now: Date<Utc> = utility::date_today();
     let naive = NaiveDate::parse_from_str(
         t.due_date.as_ref().unwrap_or(&String::from("")).as_ref(),
         "%Y-%m-%d",
@@ -52,11 +52,11 @@ pub fn done(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
 }
 
 pub fn done_summary(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
-    let today = Utc::now().date();
+    let today = utility::date_today();
     let mut last_week = HashMap::new();
 
     let n_days = std::env::var("T_DONESUMMARY_DAYS")
-        .unwrap_or("7".to_string())
+        .unwrap_or_else(|_| "7".to_string())
         .parse()?;
 
     for done in utility::filter_todos(dones, filters) {
