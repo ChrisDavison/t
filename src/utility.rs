@@ -1,7 +1,7 @@
 use std::env;
 use std::fmt::Display;
 use std::fs;
-use std::io::Read;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 #[allow(unused_imports)]
@@ -10,6 +10,14 @@ use chrono::{Date, Duration, NaiveDate, TimeZone, Utc};
 use super::todo::Todo;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
+
+pub fn todo_filter<'a>(todos: &'a [Todo], filters: &'a [String]) -> impl Iterator<Item = &'a Todo> {
+    let (bad, good): (Vec<_>, Vec<_>) = filters
+        .iter()
+        .map(|x| x.to_string())
+        .partition(|x| x.starts_with('-'));
+    todos.iter().filter(move |x| x.matches(&good, &bad))
+}
 
 pub fn notify<T: Display>(message: &str, task: T) {
     println!("{}: {}", message, task);
@@ -28,20 +36,15 @@ pub fn filter_todos(todos: &[Todo], filters: &[String]) -> Vec<Todo> {
 }
 
 fn parse_file(filename: &Path) -> Result<Vec<Todo>> {
-    let mut f = std::fs::File::open(filename).expect("Couldn't open file");
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("Couldn't read contents of file");
+    let f = std::fs::File::open(filename).expect("Couldn't open file");
+    let reader = BufReader::new(f);
 
-    let todos: Vec<Todo> = contents
-        .lines()
-        .enumerate()
-        .map(|(i, x)| {
-            let mut todo: Todo = x.parse().unwrap();
-            todo.idx = i;
-            todo
-        })
-        .collect();
+    let mut todos = Vec::new();
+    for (idx, line) in reader.lines().enumerate() {
+        let mut todo: Todo = line?.parse()?;
+        todo.idx = idx;
+        todos.push(todo);
+    }
     Ok(todos)
 }
 
