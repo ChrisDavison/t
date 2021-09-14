@@ -35,7 +35,7 @@ impl Todo {
     pub fn append_text(&mut self, text: &str) {
         self.task.push(' ');
         self.task.push_str(text);
-        utility::notify("APPENDED", self.idx, &self.task);
+        utility::notify("APPENDED", self.idx, &self.to_string());
     }
 
     pub fn prepend_text(&mut self, text: &str) {
@@ -53,7 +53,7 @@ impl Todo {
     }
 
     pub fn mark_done(&mut self) {
-        self.done_date = Some(crate::utility::get_formatted_date());
+        self.done_date = Some(utility::date_today().format("%Y-%m-%d").to_string());
         utility::notify("DONE", self.idx, &self.task);
     }
 
@@ -63,18 +63,16 @@ impl Todo {
     }
 
     pub fn schedule(&mut self, date: &str) {
-        self.due_date = Some(String::from(date));
+        self.due_date = Some(utility::parse_date_string_relative(
+            utility::date_today(),
+            date,
+        ));
         utility::notify("SCHEDULED", self.idx, &self.task);
     }
 
     pub fn unschedule(&mut self) {
         self.due_date = None;
         utility::notify("UNSCHEDULED", self.idx, &self.task);
-    }
-
-    pub fn schedule_today(&mut self) {
-        self.due_date = Some(crate::utility::get_formatted_date());
-        utility::notify("SCHEDULED", self.idx, &self.task);
     }
 
     pub fn format_for_save(&self) -> String {
@@ -190,7 +188,7 @@ impl fmt::Display for Todo {
             _ => to_colour,
         };
 
-        let mut to_output = vec![pre.to_string()];
+        let mut to_output = vec![pre];
 
         let projects: String = self.projects.join(" ");
         if !projects.is_empty() {
@@ -208,7 +206,7 @@ impl fmt::Display for Todo {
 
 #[allow(dead_code, unused_imports)]
 mod tests {
-    use crate::todo::Todo;
+    use crate::{todo::Todo, utility::date_today};
 
     #[test]
     fn test_add() {
@@ -289,7 +287,7 @@ mod tests {
             done_date: None,
             due_date: None,
         };
-        t.schedule("2021-01-01");
+        t.schedule("today");
 
         let expected = Todo {
             idx: 0,
@@ -298,7 +296,7 @@ mod tests {
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
-            due_date: Some("2021-01-01".to_string()),
+            due_date: Some(date_today().format("%F").to_string()),
         };
 
         assert_eq!(t, expected);
@@ -356,7 +354,7 @@ mod tests {
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
-            due_date: Some("2021-01-01".to_string()),
+            due_date: Some(date_today().format("%F").to_string()),
         };
         input.mark_done();
         let want = Todo {
@@ -365,8 +363,8 @@ mod tests {
             pri: None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
-            done_date: Some("2021-01-01".to_string()),
-            due_date: Some("2021-01-01".to_string()),
+            done_date: Some(date_today().format("%F").to_string()),
+            due_date: Some(date_today().format("%F").to_string()),
         };
         assert_eq!(input, want);
     }
@@ -379,18 +377,18 @@ mod tests {
             pri: None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
-            done_date: Some("2021-01-01".to_string()),
-            due_date: Some("2021-01-01".to_string()),
+            done_date: Some(date_today().format("%F").to_string()),
+            due_date: Some(date_today().format("%F").to_string()),
         };
         input.mark_undone();
-        let mut want = Todo {
+        let want = Todo {
             idx: 0,
             task: "this is a test".to_string(),
             pri: None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
-            due_date: Some("2021-01-01".to_string()),
+            due_date: Some(date_today().format("%F").to_string()),
         };
         assert_eq!(input, want);
     }

@@ -3,9 +3,8 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use chrono::NaiveDate;
-#[cfg(not(test))]
-use chrono::Utc;
+#[allow(unused_imports)]
+use chrono::{Date, Duration, NaiveDate, TimeZone, Utc};
 
 use super::todo::Todo;
 
@@ -13,16 +12,6 @@ type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn notify(message: &str, index: usize, task: &str) {
     println!("{}: {:4}. {}", message, index, task);
-}
-
-#[cfg(test)]
-pub fn get_formatted_date() -> String {
-    "2021-01-01".to_string()
-}
-
-#[cfg(not(test))]
-pub fn get_formatted_date() -> String {
-    Utc::now().format("%Y-%m-%d").to_string()
 }
 
 pub fn filter_todos(todos: &[Todo], filters: &[String]) -> Vec<Todo> {
@@ -85,4 +74,68 @@ pub fn parse_reversed_indices(idxs: &mut Vec<usize>) -> Result<Vec<usize>> {
 pub fn parse_date(date: Option<&String>) -> Option<NaiveDate> {
     date.map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .flatten()
+}
+
+#[allow(unused_imports)]
+#[cfg(test)]
+pub fn date_today() -> Date<Utc> {
+    // Mon, September 13
+    Utc.ymd(2021, 09, 13)
+}
+
+#[allow(unused_imports)]
+#[cfg(not(test))]
+pub fn date_today() -> Date<Utc> {
+    // Mon, September 13
+    Utc::today()
+}
+
+pub fn parse_date_string_relative(date: Date<Utc>, s: &str) -> String {
+    let to_ymd = |date: Date<Utc>| date.format("%Y-%m-%d").to_string();
+    match s.to_lowercase().as_str() {
+        "today" => to_ymd(date_today()),
+        "tomorrow" => to_ymd(date_today() + Duration::days(1)),
+        "weekend" => to_ymd(iter_till_day_of_week(date, 6)),
+        "monday" | "mon" => to_ymd(iter_till_day_of_week(date, 1)),
+        "tuesday" | "tue" => to_ymd(iter_till_day_of_week(date, 2)),
+        "wednesday" | "wed" => to_ymd(iter_till_day_of_week(date, 3)),
+        "thursday" | "thu" => to_ymd(iter_till_day_of_week(date, 4)),
+        "friday" | "fri" => to_ymd(iter_till_day_of_week(date, 5)),
+        "saturday" | "sat" => to_ymd(iter_till_day_of_week(date, 6)),
+        "sunday" | "sun" => to_ymd(iter_till_day_of_week(date, 7)),
+        _ => date.to_string(),
+    }
+}
+
+fn iter_till_day_of_week(date: Date<Utc>, day_of_week: u8) -> Date<Utc> {
+    let mut date = date;
+    let one_day = Duration::days(1);
+    date = date + one_day;
+    while date.format("%u").to_string().parse::<u8>().unwrap() != day_of_week {
+        date = date + one_day;
+    }
+    date
+}
+
+#[allow(unused_imports, dead_code)]
+mod tests {
+    use super::*;
+    use chrono::TimeZone;
+
+    #[test]
+    fn iter_date_till_sat() {
+        let mut now = Utc.ymd(2021, 9, 13); // Mon, 13 September
+        let want = Utc.ymd(2021, 9, 18); // Sat, 18 September
+
+        now = iter_till_day_of_week(now, 6);
+        assert_eq!(now, want);
+    }
+
+    #[test]
+    fn date_from_string() {
+        let now = Utc.ymd(2021, 9, 13); // Mon, 13 September
+        assert_eq!(parse_date_string_relative(now, "thursday"), "2021-09-16");
+        assert_eq!(parse_date_string_relative(now, "tomorrow"), "2021-09-14");
+        assert_eq!(parse_date_string_relative(now, "weekend"), "2021-09-18");
+    }
 }
