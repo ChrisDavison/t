@@ -79,11 +79,13 @@ impl Todo {
         let mut to_output: Vec<String> = vec![];
 
         if let Some(done) = &self.done_date {
-            to_output.push(format!("x {}", done))
+            to_output.push(format!("x {}", done));
         };
 
         if let Some(p) = self.pri.as_ref() {
-            to_output.push(format!("({})", p));
+            if self.done_date.is_none() {
+                to_output.push(format!("({})", p));
+            }
         };
 
         to_output.push(self.task.to_string());
@@ -126,32 +128,43 @@ impl Todo {
 impl std::str::FromStr for Todo {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<_> = s.split_whitespace().collect();
-        let (parts, contexts): (Vec<&str>, Vec<&str>) =
-            parts.iter().partition(|p| !p.starts_with('@'));
-        let (parts, projects): (Vec<&str>, Vec<&str>) =
-            parts.iter().partition(|p| !p.starts_with('+'));
-        let (parts, done_date) = if parts[0] == "x" {
-            (parts[2..].to_vec(), Some(parts[1].to_string()))
-        } else {
-            (parts, None)
-        };
-        let (parts, priority) = if parts[0].starts_with('(') && parts[0].ends_with(')') {
-            (parts[1..].to_vec(), Some(parts[0][1..2].to_string()))
-        } else {
-            (parts, None)
-        };
+        let mut done_date = None;
+        let mut priority = None;
+        let mut task_parts = Vec::new();
+        let mut projects = Vec::new();
+        let mut contexts = Vec::new();
+        let mut due_date = None;
 
-        let (task_parts, due_date_maybe): (Vec<&str>, Vec<&str>) =
-            parts.iter().partition(|x| !x.starts_with("due:"));
-        let task = task_parts.join(" ");
-        let due_date = due_date_maybe
-            .get(0)
-            .map(|x| x.split(':').nth(1).unwrap().to_string());
+        let token_iter: Vec<&str> = s.split_whitespace().collect();
+        let is_priority =
+            |word: &str| word.starts_with('(') && word.ends_with(')') && word.len() == 3;
+        let mut idx = 0;
+        loop {
+            let token = match token_iter.get(idx) {
+                None => break,
+                Some(token) => *token,
+            };
 
+            if idx == 0 && token == "x" {
+                done_date = Some(token_iter[1].to_string());
+                idx = 2;
+                continue;
+            } else if is_priority(token) {
+                priority = Some(token[1..2].to_string());
+            } else if let Some(date) = token.strip_prefix("due:") {
+                due_date = Some(date.to_string());
+            } else if token.starts_with('@') {
+                contexts.push(token);
+            } else if token.starts_with('+') {
+                projects.push(token);
+            } else {
+                task_parts.push(token);
+            }
+            idx += 1;
+        }
         Ok(Todo {
             idx: 0,
-            task,
+            task: task_parts.join(" "),
             pri: priority,
             projects: projects.iter().map(|x| x.to_string()).collect(),
             contexts: contexts.iter().map(|x| x.to_string()).collect(),
@@ -181,14 +194,14 @@ impl fmt::Display for Todo {
 
         let to_colour = to_colour.join(" ");
 
-        let pre = match self.pri.as_deref() {
-            Some("A") => to_colour.yellow().to_string(),
-            Some("B") => to_colour.green().to_string(),
-            Some("C") => to_colour.blue().to_string(),
-            _ => to_colour,
+        let colourer = match self.pri.as_deref() {
+            Some("A") => |s: String| s.yellow().to_string(),
+            Some("B") => |s: String| s.green().to_string(),
+            Some("C") => |s: String| s.blue().to_string(),
+            _ => |s: String| s.to_string(),
         };
 
-        let mut to_output = vec![pre];
+        let mut to_output = vec![colourer(to_colour)];
 
         let projects: String = self.projects.join(" ");
         if !projects.is_empty() {
@@ -219,6 +232,21 @@ mod tests {
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
+            due_date: None,
+        };
+        let got: Todo = input.parse().unwrap();
+        assert_eq!(t, got);
+    }
+
+    fn can_parse_done_task() {
+        let input = "x 2021-01-01 this is a test +p1 +p2 @c1";
+        let t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: Some("A".to_string()),
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some("2021-01-01".to_string()),
             due_date: None,
         };
         let got: Todo = input.parse().unwrap();
