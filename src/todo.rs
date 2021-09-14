@@ -209,7 +209,7 @@ mod tests {
     use crate::{todo::Todo, utility::date_today};
 
     #[test]
-    fn test_add() {
+    fn can_parse_task() {
         let input = "this is a test +p1 +p2 @c1";
         let t = Todo {
             idx: 0,
@@ -225,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn test_append() {
+    fn can_append_text_to_tast() {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn test_prepend() {
+    fn can_prepend_text_to_task() {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -277,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_schedule() {
+    fn can_schedule_a_task() {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -303,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unschedule() {
+    fn can_unschedule_a_task() {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -329,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn test_match() {
+    fn can_match_a_task() {
         let t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -346,7 +346,7 @@ mod tests {
     }
 
     #[test]
-    fn mark_done() {
+    fn can_mark_task_as_done() {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn mark_undone() {
+    fn can_undo_marking_task_as_done() {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -394,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn mark_prioritise() {
+    fn can_prioritise_a_task() {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
@@ -418,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn mark_deprioritise() {
+    fn can_remove_task_priority() {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
