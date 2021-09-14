@@ -2,3 +2,5 @@
 **/*.rs.bk
 tags
 .vscode/settings.json
+src/main.rs
+.vscode/*

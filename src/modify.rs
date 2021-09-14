@@ -10,32 +10,52 @@ pub fn add(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
     Ok(())
 }
 
+pub fn addx(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
+    add(text, todos)?;
+    do_task(&[todos.len() - 1], todos)
+}
+
+pub fn adda(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
+    add(text, todos)?;
+    prioritise(todos.len() - 1, todos, Some("A".to_string()))
+}
+
 pub fn append(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
-    todos[idx].append_text(text);
+    if let Some(t) = todos.get_mut(idx) {
+        t.append_text(text);
+    }
     Ok(())
 }
 
 pub fn prepend(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
-    todos[idx].prepend_text(text);
+    if let Some(t) = todos.get_mut(idx) {
+        t.prepend_text(text);
+    }
     Ok(())
 }
 
 pub fn prioritise(idx: usize, todos: &mut Vec<Todo>, priority: Option<String>) -> Result<()> {
-    todos[idx].prioritise(priority);
+    if let Some(t) = todos.get_mut(idx) {
+        t.prioritise(priority);
+    }
     Ok(())
 }
 
 pub fn remove(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     // reverse so that we always pop from the end of the list
     for &i in indices.iter().rev() {
-        utility::notify("REMOVED", &todos[i]);
-        todos.remove(i);
+        if let Some(t) = todos.get_mut(i) {
+            utility::notify("REMOVED", t);
+            todos.remove(i);
+        }
     }
     Ok(())
 }
 
 pub fn schedule(idx: usize, todos: &mut Vec<Todo>, date: &str) -> Result<()> {
-    todos[idx].schedule(date);
+    if let Some(t) = todos.get_mut(idx) {
+        t.schedule(date);
+    }
     Ok(())
 }
 
@@ -76,31 +96,40 @@ pub fn archive(todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> Result<()> {
 }
 
 pub fn do_task(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
-    indices.iter().rev().for_each(|&idx| todos[idx].mark_done());
+    indices.iter().rev().for_each(|&idx| {
+        if let Some(t) = todos.get_mut(idx) {
+            t.mark_done()
+        }
+    });
+
     Ok(())
 }
 
 pub fn undo(indices: &[usize], todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
-        let mut done = dones[i].clone();
-        done.mark_undone();
-        todos.push(done);
-        dones.remove(i);
+        if let Some(done) = dones.get_mut(i) {
+            done.mark_undone();
+            todos.push(done.clone());
+            dones.remove(i);
+        }
     }
     Ok(())
 }
 
 pub fn unschedule_each(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
-        todos[i].due_date = None;
-        todos[i].unschedule();
+        if let Some(t) = todos.get_mut(i) {
+            t.unschedule();
+        }
     }
     Ok(())
 }
 
 pub fn schedule_each_today(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
-        todos[i].schedule("today");
+        if let Some(t) = todos.get_mut(i) {
+            t.schedule("today");
+        }
     }
     Ok(())
 }
