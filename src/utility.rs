@@ -64,13 +64,6 @@ pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
     Ok(())
 }
 
-pub fn parse_reversed_indices(idxs: &mut Vec<usize>) -> Result<Vec<usize>> {
-    let mut idx = idxs.to_vec();
-    idx.sort_unstable();
-    idx.reverse();
-    Ok(idx)
-}
-
 pub fn parse_date(date: Option<&String>) -> Option<NaiveDate> {
     date.map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .flatten()

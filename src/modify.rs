@@ -40,10 +40,9 @@ pub fn prioritise(idx: usize, todos: &mut Vec<todo::Todo>, priority: Option<Stri
     }
 }
 
-pub fn remove(idx: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-    idx.sort_unstable();
+pub fn remove(indices: &[usize], todos: &mut Vec<todo::Todo>) -> Result<()> {
     // reverse so that we always pop from the end of the list
-    for &i in idx.iter().rev() {
+    for &i in indices.iter().rev() {
         if i >= todos.len() {
             continue;
         }
@@ -89,8 +88,7 @@ pub fn archive(todos: &mut Vec<todo::Todo>, dones: &mut Vec<todo::Todo>) -> Resu
     Ok(())
 }
 
-pub fn do_task(indices: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-    indices.sort_unstable();
+pub fn do_task(indices: &[usize], todos: &mut Vec<todo::Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
         if i >= todos.len() {
             continue;
@@ -101,11 +99,10 @@ pub fn do_task(indices: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<
 }
 
 pub fn undo(
-    indices: &mut Vec<usize>,
+    indices: &[usize],
     todos: &mut Vec<todo::Todo>,
     dones: &mut Vec<todo::Todo>,
 ) -> Result<()> {
-    indices.sort_unstable();
     for &i in indices.iter().rev() {
         if i >= dones.len() {
             return Err(From::from("IDX must be within range of num done"));
@@ -118,8 +115,8 @@ pub fn undo(
     Ok(())
 }
 
-pub fn unschedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-    for i in utility::parse_reversed_indices(args)? {
+pub fn unschedule_each(indices: &[usize], todos: &mut Vec<todo::Todo>) -> Result<()> {
+    for &i in indices.iter().rev() {
         if i >= todos.len() {
             continue;
         }
@@ -129,8 +126,11 @@ pub fn unschedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Re
     Ok(())
 }
 
-pub fn schedule_each_today(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-    for i in utility::parse_reversed_indices(args)? {
+pub fn schedule_each_today(indices: &[usize], todos: &mut Vec<todo::Todo>) -> Result<()> {
+    for &i in indices.iter().rev() {
+        if i >= todos.len() {
+            continue;
+        }
         todos[i].schedule("today");
     }
     Ok(())

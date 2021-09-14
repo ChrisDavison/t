@@ -123,13 +123,13 @@ fn main() -> Result<()> {
         }
         Command::Deprioritise { idx } => modify::prioritise(idx, &mut todos, None),
 
-        Command::Remove { mut idxs } => modify::remove(&mut idxs, &mut todos),
-        Command::Do { mut idxs } => modify::do_task(&mut idxs, &mut todos),
-        Command::Undo { mut idxs } => modify::undo(&mut idxs, &mut todos, &mut dones),
+        Command::Remove { idxs } => modify::remove(&idxs, &mut todos),
+        Command::Do { idxs } => modify::do_task(&idxs, &mut todos),
+        Command::Undo { idxs } => modify::undo(&idxs, &mut todos, &mut dones),
         // ========== SCHEDULING
         Command::Schedule { idx, date } => modify::schedule(idx, &mut todos, &date),
-        Command::Unschedule { mut idxs } => modify::unschedule_each(&mut idxs, &mut todos),
-        Command::Today { mut idxs } => modify::schedule_each_today(&mut idxs, &mut todos),
+        Command::Unschedule { idxs } => modify::unschedule_each(&idxs, &mut todos),
+        Command::Today { idxs } => modify::schedule_each_today(&idxs, &mut todos),
         // ========== Filtered views
         Command::List { filters } => view::list(&todos, &filters),
         Command::ListPriority { filters } => view::list_priority(&todos, &filters),
@@ -195,10 +195,12 @@ fn parse_args() -> Result<(Command, bool)> {
     };
 
     let rest_as_usizes = |pargs: pico_args::Arguments| {
-        rest_as_strings(pargs)
+        let mut usizes: Vec<usize> = rest_as_strings(pargs)
             .iter()
             .map(|x| x.parse().expect("Failed to parse indice"))
-            .collect()
+            .collect();
+        usizes.sort_unstable();
+        usizes
     };
 
     let command = match pargs.subcommand()?.as_deref() {
