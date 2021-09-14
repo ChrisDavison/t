@@ -1,11 +1,11 @@
-use super::{todo, utility};
+use super::{todo::Todo, utility};
 
 use chrono::{Date, Duration, NaiveDate, Utc};
 use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn days_overdue(t: &todo::Todo) -> i64 {
+pub fn days_overdue(t: &Todo) -> i64 {
     let now: Date<Utc> = utility::date_today();
     let naive = NaiveDate::parse_from_str(
         t.due_date.as_ref().unwrap_or(&String::from("")).as_ref(),
@@ -16,7 +16,7 @@ pub fn days_overdue(t: &todo::Todo) -> i64 {
     (now - task_date).num_days()
 }
 
-pub fn list(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
     let mut todos = utility::filter_todos(todos, filters);
     todos.sort_by(|a, b| a.pri.cmp(&b.pri));
     for todo in todos.iter().filter(|x| x.pri.is_some()) {
@@ -29,7 +29,7 @@ pub fn list(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn list_priority(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+pub fn list_priority(todos: &[Todo], filters: &[String]) -> Result<()> {
     let mut todos = utility::filter_todos(todos, filters);
     todos.sort_by(|a, b| a.pri.cmp(&b.pri));
     for todo in todos.iter().filter(|x| x.pri.is_some()) {
@@ -38,7 +38,7 @@ pub fn list_priority(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn done(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
+pub fn done(dones: &[Todo], filters: &[String]) -> Result<()> {
     let mut todos = utility::filter_todos(dones, filters);
     todos.sort_by(|a, b| a.pri.cmp(&b.pri));
     for todo in todos.iter().filter(|x| x.pri.is_some()) {
@@ -51,7 +51,7 @@ pub fn done(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn done_summary(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
+pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
     let today = utility::date_today();
     let mut last_week = HashMap::new();
 
@@ -87,10 +87,10 @@ pub fn done_summary(dones: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn due(todos: &[todo::Todo], n_days: usize, filters: &[String]) -> Result<()> {
+pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
     let todos = utility::filter_todos(todos, filters);
 
-    let mut datediffed_todos: Vec<(i64, todo::Todo)> = todos
+    let mut datediffed_todos: Vec<(i64, Todo)> = todos
         .iter()
         .filter(|x| x.due_date.is_some())
         .map(|x| (days_overdue(x), x.to_owned()))
@@ -112,7 +112,7 @@ pub fn due(todos: &[todo::Todo], n_days: usize, filters: &[String]) -> Result<()
     Ok(())
 }
 
-pub fn no_date(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
+pub fn no_date(todos: &[Todo], filters: &[String]) -> Result<()> {
     let todos = utility::filter_todos(todos, filters);
     let undated_todos: Vec<_> = todos.iter().filter(|x| x.due_date.is_none()).collect();
     for &todo in undated_todos.iter().filter(|x| x.pri.is_some()) {
@@ -125,7 +125,7 @@ pub fn no_date(todos: &[todo::Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn projects(todos: &[todo::Todo]) -> Result<()> {
+pub fn projects(todos: &[Todo]) -> Result<()> {
     let mut projects = HashMap::new();
     for t in todos {
         for project in &t.projects {
@@ -139,7 +139,7 @@ pub fn projects(todos: &[todo::Todo]) -> Result<()> {
     Ok(())
 }
 
-pub fn contexts(todos: &[todo::Todo]) -> Result<()> {
+pub fn contexts(todos: &[Todo]) -> Result<()> {
     let mut contexts = HashMap::new();
     for t in todos {
         for context in &t.contexts {
