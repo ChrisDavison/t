@@ -1,4 +1,5 @@
 use std::env;
+use std::fmt::Display;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -10,8 +11,8 @@ use super::todo::Todo;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn notify(message: &str, index: usize, task: &str) {
-    println!("{}: {:4}. {}", message, index, task);
+pub fn notify<T: Display>(message: &str, task: T) {
+    println!("{}: {}", message, task);
 }
 
 pub fn filter_todos(todos: &[Todo], filters: &[String]) -> Vec<Todo> {
@@ -72,7 +73,7 @@ pub fn parse_date(date: Option<&String>) -> Option<NaiveDate> {
 pub fn date_today() -> Date<Utc> {
     if cfg!(test) {
         // Mon, September 13
-        Utc.ymd(2021, 09, 13)
+        Utc.ymd(2021, 9, 13)
     } else {
         Utc::today()
     }
@@ -105,6 +106,7 @@ fn iter_till_day_of_week(date: Date<Utc>, day_of_week: u8) -> Date<Utc> {
     date
 }
 
+#[cfg(test)]
 #[allow(unused_imports, dead_code)]
 mod tests {
     use super::*;

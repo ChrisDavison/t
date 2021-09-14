@@ -35,31 +35,31 @@ impl Todo {
     pub fn append_text(&mut self, text: &str) {
         self.task.push(' ');
         self.task.push_str(text);
-        utility::notify("APPENDED", self.idx, &self.to_string());
+        utility::notify("APPENDED", &self);
     }
 
     pub fn prepend_text(&mut self, text: &str) {
         self.task = format!("{} {}", text, self.task);
-        utility::notify("PREPENDED", self.idx, &self.task);
+        utility::notify("PREPENDED", &self);
     }
 
     pub fn prioritise(&mut self, priority: Option<String>) {
         self.pri = priority;
         if self.pri.is_some() {
-            utility::notify("PRIORITISED", self.idx, &self.task);
+            utility::notify("PRIORITISED", &self);
         } else {
-            utility::notify("DEPRIORITISED", self.idx, &self.task);
+            utility::notify("DEPRIORITISED", self);
         }
     }
 
     pub fn mark_done(&mut self) {
         self.done_date = Some(utility::date_today().format("%Y-%m-%d").to_string());
-        utility::notify("DONE", self.idx, &self.task);
+        utility::notify("DONE", &self);
     }
 
     pub fn mark_undone(&mut self) {
         self.done_date = None;
-        utility::notify("UNDONE", self.idx, &self.task);
+        utility::notify("UNDONE", &self);
     }
 
     pub fn schedule(&mut self, date: &str) {
@@ -67,12 +67,12 @@ impl Todo {
             utility::date_today(),
             date,
         ));
-        utility::notify("SCHEDULED", self.idx, &self.task);
+        utility::notify("SCHEDULED", &self);
     }
 
     pub fn unschedule(&mut self) {
         self.due_date = None;
-        utility::notify("UNSCHEDULED", self.idx, &self.task);
+        utility::notify("UNSCHEDULED", &self);
     }
 
     pub fn format_for_save(&self) -> String {
@@ -204,6 +204,7 @@ impl fmt::Display for Todo {
     }
 }
 
+#[cfg(test)]
 #[allow(dead_code, unused_imports)]
 mod tests {
     use crate::{todo::Todo, utility::date_today};
