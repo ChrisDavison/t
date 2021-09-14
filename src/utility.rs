@@ -61,7 +61,8 @@ pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
         .map(|x| x.format_for_save())
         .collect::<Vec<_>>()
         .join("\n");
-    fs::write(filename, todo_str + "\n").expect("Couldn't write todos to file");
+    fs::write(&filename, todo_str + "\n").expect("Couldn't write todos to file");
+    // crate::utility::notify("SAVED FILE", &filename);
     Ok(())
 }
 

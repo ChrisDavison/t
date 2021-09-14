@@ -5,53 +5,38 @@ type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 pub fn add(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
     let mut todo: Todo = text.parse()?;
     todo.idx = todos.len();
-    utility::notify("ADDED", todos.len(), &todo.task);
+    utility::notify("ADDED", &todo);
     todos.push(todo);
     Ok(())
 }
 
 pub fn append(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
-    let n_todos = todos.len();
-    todos
-        .get_mut(idx)
-        .ok_or_else(|| format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
-        .map(|t| t.append_text(text))
+    todos[idx].append_text(text);
+    Ok(())
 }
 
 pub fn prepend(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
-    let n_todos = todos.len();
-    todos
-        .get_mut(idx)
-        .ok_or_else(|| format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
-        .map(|t| t.prepend_text(text))
+    todos[idx].prepend_text(text);
+    Ok(())
 }
 
 pub fn prioritise(idx: usize, todos: &mut Vec<Todo>, priority: Option<String>) -> Result<()> {
-    let n_todos = todos.len();
-    todos
-        .get_mut(idx)
-        .ok_or_else(|| format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
-        .map(|t| t.prioritise(priority))
+    todos[idx].prioritise(priority);
+    Ok(())
 }
 
 pub fn remove(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     // reverse so that we always pop from the end of the list
     for &i in indices.iter().rev() {
-        if i >= todos.len() {
-            continue;
-        }
-        utility::notify("REMOVED", i, &todos[i].task);
+        utility::notify("REMOVED", &todos[i]);
         todos.remove(i);
     }
     Ok(())
 }
 
 pub fn schedule(idx: usize, todos: &mut Vec<Todo>, date: &str) -> Result<()> {
-    let n_todos = todos.len();
-    todos
-        .get_mut(idx)
-        .ok_or_else(|| format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
-        .map(|t| t.schedule(date))
+    todos[idx].schedule(date);
+    Ok(())
 }
 
 pub fn archive(todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> Result<()> {
@@ -91,20 +76,12 @@ pub fn archive(todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> Result<()> {
 }
 
 pub fn do_task(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
-    for &i in indices.iter().rev() {
-        if i >= todos.len() {
-            continue;
-        }
-        todos[i].mark_done();
-    }
+    indices.iter().rev().for_each(|&idx| todos[idx].mark_done());
     Ok(())
 }
 
 pub fn undo(indices: &[usize], todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
-        if i >= dones.len() {
-            return Err(From::from("IDX must be within range of num done"));
-        }
         let mut done = dones[i].clone();
         done.mark_undone();
         todos.push(done);
@@ -115,9 +92,6 @@ pub fn undo(indices: &[usize], todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> 
 
 pub fn unschedule_each(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
-        if i >= todos.len() {
-            continue;
-        }
         todos[i].due_date = None;
         todos[i].unschedule();
     }
@@ -126,14 +100,12 @@ pub fn unschedule_each(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
 
 pub fn schedule_each_today(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     for &i in indices.iter().rev() {
-        if i >= todos.len() {
-            continue;
-        }
         todos[i].schedule("today");
     }
     Ok(())
 }
 
+#[cfg(test)]
 #[allow(dead_code, unused_imports)]
 mod tests {
     use super::*;

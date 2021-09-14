@@ -111,8 +111,9 @@ fn main() -> Result<()> {
     debug!("Started with {} todos", num_todos_at_start);
     debug!("Started with {} dones", num_done_at_start);
 
-    let (command, mut autoarchive) = parse_args()?;
+    let (command, mut autoarchive) = parse_args(num_todos_at_start, num_done_at_start)?;
     debug!("Autoarchiving? {}", autoarchive);
+
     let result = match command {
         // ========== Modification
         Command::Add { text } => modify::add(&text, &mut todos),
@@ -171,7 +172,9 @@ fn main() -> Result<()> {
 }
 
 // Return the command to execute, and whether to auto-archive
-fn parse_args() -> Result<(Command, bool)> {
+// Also, will filter any user-provided indices to be within range of available
+// todos
+fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
     let mut pargs = pico_args::Arguments::from_env();
 
     // Help has a higher priority and should be handled separately.
@@ -194,10 +197,11 @@ fn parse_args() -> Result<(Command, bool)> {
             .collect::<Vec<String>>()
     };
 
-    let rest_as_usizes = |pargs: pico_args::Arguments| {
+    let rest_as_usizes_within_bounds = |pargs: pico_args::Arguments, limit: usize| {
         let mut usizes: Vec<usize> = rest_as_strings(pargs)
             .iter()
             .map(|x| x.parse().expect("Failed to parse indice"))
+            .filter(|&idx| idx < limit)
             .collect();
         usizes.sort_unstable();
         usizes
@@ -227,23 +231,23 @@ fn parse_args() -> Result<(Command, bool)> {
             idx: pargs.free_from_str()?,
         },
         Some("remove" | "rm" | "delete" | "del") => Command::Remove {
-            idxs: rest_as_usizes(pargs),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
         },
         Some("do") => Command::Do {
-            idxs: rest_as_usizes(pargs),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
         },
         Some("undo") => Command::Undo {
-            idxs: rest_as_usizes(pargs),
+            idxs: rest_as_usizes_within_bounds(pargs, n_dones),
         },
         Some("schedule") => Command::Schedule {
             idx: pargs.free_from_str()?,
             date: rest_as_strings(pargs).join(" "),
         },
         Some("unschedule") => Command::Unschedule {
-            idxs: rest_as_usizes(pargs),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
         },
         Some("today") => Command::Today {
-            idxs: rest_as_usizes(pargs),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
         },
         Some("list" | "ls") => Command::List {
             filters: rest_as_strings(pargs),
