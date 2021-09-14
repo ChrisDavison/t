@@ -16,6 +16,8 @@ enum Command {
     Addx { text: String },
     /// Add a task and prioritise as 'A'
     Adda { text: String },
+    /// Add a task and schedule today
+    Addt { text: String },
     /// Append text to a task
     Append { idx: usize, text: String },
     /// Prepend text to a task
@@ -62,6 +64,7 @@ const USAGE: &str = "usage: t <COMMAND> [ARGS]...
 Commands:
     add TEXT...              [a] Add a task
     addx TEXT...             [a] Add a task and complete immediately
+    adda TEXT...             [a] Add a task with priority a
     append IDX TEXT...       [app] Append TEXT... to task
     prepend IDX TEXT...      [pre] Prepend TEXT... to task
     priority IDX PRIORITY    [pri] Change priority of task
@@ -125,6 +128,7 @@ fn main() -> Result<()> {
         Command::Add { text } => modify::add(&text, &mut todos),
         Command::Addx { text } => modify::addx(&text, &mut todos),
         Command::Adda { text } => modify::adda(&text, &mut todos),
+        Command::Addt { text } => modify::addt(&text, &mut todos),
         Command::Append { idx, text } => modify::append(idx, &mut todos, &text),
         Command::Prepend { idx, text } => modify::prepend(idx, &mut todos, &text),
         Command::Prioritise { idx, priority } => {
@@ -227,6 +231,9 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
             text: rest_as_strings(pargs).join(" "),
         },
         Some("adda" | "aa") => Command::Adda {
+            text: rest_as_strings(pargs).join(" "),
+        },
+        Some("addt" | "at") => Command::Addt {
             text: rest_as_strings(pargs).join(" "),
         },
         Some("append" | "app") => Command::Append {

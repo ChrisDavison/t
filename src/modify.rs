@@ -20,6 +20,11 @@ pub fn adda(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
     prioritise(todos.len() - 1, todos, Some("A".to_string()))
 }
 
+pub fn addt(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
+    add(text, todos)?;
+    schedule(todos.len() - 1, todos, "today")
+}
+
 pub fn append(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
         t.append_text(text);
