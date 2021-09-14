@@ -1,17 +1,21 @@
 extern crate anyhow;
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
 
 mod modify;
 mod todo;
 mod utility;
 mod view;
 
+#[derive(Debug)]
 enum Command {
     /// Add a task
-    Add { text: Vec<String> },
+    Add { text: String },
     /// Append text to a task
-    Append { idx: usize, text: Vec<String> },
+    Append { idx: usize, text: String },
     /// Prepend text to a task
-    Prepend { idx: usize, text: Vec<String> },
+    Prepend { idx: usize, text: String },
     /// Prioritise a task
     Prioritise { idx: usize, priority: String },
     /// Deprioritise a task
@@ -23,7 +27,7 @@ enum Command {
     /// Move task from DONEFILE to TODOFILE
     Undo { idxs: Vec<usize> },
     /// Schedule a task
-    Schedule { idxs: Vec<usize>, date: String },
+    Schedule { idx: usize, date: String },
     /// Remove due date from task
     Unschedule { idxs: Vec<usize> },
     /// Schedule task today
@@ -60,7 +64,7 @@ Commands:
     remove IDX...            [rm|del] Remove task
     do IDX...                Move task to DONE
     undo IDX...              Move task from DONE to TODO
-    schedule DATE IDX...     Schedule task
+    schedule IDX DATE        Schedule task
     unschedule IDX...        Remove due date from task
     today IDX...             Schedule task for today
 
@@ -85,6 +89,8 @@ Note:
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 fn main() -> Result<()> {
+    pretty_env_logger::init_timed();
+
     let mut todos = match utility::get_todos() {
         Ok(todos) => todos,
         Err(e) => {
@@ -102,8 +108,11 @@ fn main() -> Result<()> {
 
     let num_todos_at_start = todos.len();
     let num_done_at_start = dones.len();
+    debug!("Started with {} todos", num_todos_at_start);
+    debug!("Started with {} dones", num_done_at_start);
 
     let (command, mut autoarchive) = parse_args()?;
+    debug!("Autoarchiving? {}", autoarchive);
     let result = match command {
         // ========== Modification
         Command::Add { text } => modify::add(&text, &mut todos),
@@ -118,9 +127,9 @@ fn main() -> Result<()> {
         Command::Do { mut idxs } => modify::do_task(&mut idxs, &mut todos),
         Command::Undo { mut idxs } => modify::undo(&mut idxs, &mut todos, &mut dones),
         // ========== SCHEDULING
-        Command::Schedule { mut idxs, date } => schedule_each(&mut idxs, &mut todos, &date),
-        Command::Unschedule { mut idxs } => unschedule_each(&mut idxs, &mut todos),
-        Command::Today { mut idxs } => schedule_each_today(&mut idxs, &mut todos),
+        Command::Schedule { idx, date } => modify::schedule(idx, &mut todos, &date),
+        Command::Unschedule { mut idxs } => modify::unschedule_each(&mut idxs, &mut todos),
+        Command::Today { mut idxs } => modify::schedule_each_today(&mut idxs, &mut todos),
         // ========== Filtered views
         Command::List { filters } => view::list(&todos, &filters),
         Command::ListPriority { filters } => view::list_priority(&todos, &filters),
@@ -171,7 +180,8 @@ fn parse_args() -> Result<(Command, bool)> {
         std::process::exit(0);
     }
 
-    let t_dont_autoarchive_env = std::env::var("T_DONT_AUTOARCHIVE").unwrap_or("false".to_string());
+    let t_dont_autoarchive_env =
+        std::env::var("T_DONT_AUTOARCHIVE").unwrap_or_else(|_| "false".to_string());
     let autoarchive = pargs.contains(["-a", "--autoarchive"])
         || t_dont_autoarchive_env.is_empty()
         || t_dont_autoarchive_env == "false";
@@ -197,15 +207,15 @@ fn parse_args() -> Result<(Command, bool)> {
             std::process::exit(0);
         }
         Some("add" | "a") => Command::Add {
-            text: rest_as_strings(pargs),
+            text: rest_as_strings(pargs).join(" "),
         },
         Some("append" | "app") => Command::Append {
             idx: pargs.free_from_str()?,
-            text: rest_as_strings(pargs),
+            text: rest_as_strings(pargs).join(" "),
         },
         Some("prepend" | "pre") => Command::Prepend {
             idx: pargs.free_from_str()?,
-            text: rest_as_strings(pargs),
+            text: rest_as_strings(pargs).join(" "),
         },
         Some("priority" | "pri") => Command::Prioritise {
             idx: pargs.free_from_str()?,
@@ -224,8 +234,8 @@ fn parse_args() -> Result<(Command, bool)> {
             idxs: rest_as_usizes(pargs),
         },
         Some("schedule") => Command::Schedule {
-            date: pargs.free_from_str()?,
-            idxs: rest_as_usizes(pargs),
+            idx: pargs.free_from_str()?,
+            date: rest_as_strings(pargs).join(" "),
         },
         Some("unschedule") => Command::Unschedule {
             idxs: rest_as_usizes(pargs),
@@ -263,34 +273,7 @@ fn parse_args() -> Result<(Command, bool)> {
             std::process::exit(1);
         }
     };
+    debug!("Parsed Command: {:#?}", command);
 
     Ok((command, autoarchive))
-}
-
-pub fn unschedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-    for i in utility::parse_reversed_indices(args)? {
-        if i >= todos.len() {
-            continue;
-        }
-        todos[i].due_date = None;
-        todos[i].unschedule();
-    }
-    Ok(())
-}
-
-pub fn schedule_each_today(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
-    let t_str = utility::get_formatted_date();
-    for i in utility::parse_reversed_indices(args)? {
-        todos[i].due_date = Some(t_str.clone());
-        todos[i].schedule_today();
-    }
-    Ok(())
-}
-
-pub fn schedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>, date: &str) -> Result<()> {
-    for i in utility::parse_reversed_indices(args)? {
-        todos[i].due_date = Some(date.to_string());
-        todos[i].schedule(date);
-    }
-    Ok(())
 }

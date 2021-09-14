@@ -2,30 +2,28 @@ use super::{todo, utility};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn add(text: &[String], todos: &mut Vec<todo::Todo>) -> Result<()> {
-    let mut todo: todo::Todo = text.join(" ").parse()?;
+pub fn add(text: &str, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    let mut todo: todo::Todo = text.parse()?;
     todo.idx = todos.len();
     utility::notify("ADDED", todos.len(), &todo.task);
     todos.push(todo);
     Ok(())
 }
 
-pub fn append(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Result<()> {
-    let msg: String = text.iter().skip(1).cloned().collect();
+pub fn append(idx: usize, todos: &mut Vec<todo::Todo>, text: &str) -> Result<()> {
     let n_todos = todos.len();
     if let Some(t) = todos.get_mut(idx) {
-        t.append_text(&msg);
+        t.append_text(text);
         Ok(())
     } else {
         Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
     }
 }
 
-pub fn prepend(idx: usize, todos: &mut Vec<todo::Todo>, text: &[String]) -> Result<()> {
-    let msg: String = text.iter().skip(1).cloned().collect();
+pub fn prepend(idx: usize, todos: &mut Vec<todo::Todo>, text: &str) -> Result<()> {
     let n_todos = todos.len();
     if let Some(t) = todos.get_mut(idx) {
-        t.prepend_text(&msg);
+        t.prepend_text(text);
         Ok(())
     } else {
         Err(format!("IDX must be < {} (num todos) - got {}", n_todos, idx).into())
@@ -117,5 +115,28 @@ pub fn undo(
         todos.push(done);
         dones.remove(i);
     }
+    Ok(())
+}
+
+pub fn unschedule_each(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    for i in utility::parse_reversed_indices(args)? {
+        if i >= todos.len() {
+            continue;
+        }
+        todos[i].due_date = None;
+        todos[i].unschedule();
+    }
+    Ok(())
+}
+
+pub fn schedule_each_today(args: &mut Vec<usize>, todos: &mut Vec<todo::Todo>) -> Result<()> {
+    for i in utility::parse_reversed_indices(args)? {
+        todos[i].schedule("today");
+    }
+    Ok(())
+}
+
+pub fn schedule(idx: usize, todos: &mut Vec<todo::Todo>, date: &str) -> Result<()> {
+    todos[idx].schedule(date);
     Ok(())
 }
