@@ -54,6 +54,7 @@ impl Todo {
 
     pub fn mark_done(&mut self) {
         self.done_date = Some(utility::date_today().format("%Y-%m-%d").to_string());
+        self.pri = None;
         utility::notify("DONE", &self);
     }
 
