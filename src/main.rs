@@ -117,6 +117,7 @@ fn main() -> Result<()> {
 
     let num_todos_at_start = todos.len();
     let num_done_at_start = dones.len();
+
     debug!("Started with {} todos", num_todos_at_start);
     debug!("Started with {} dones", num_done_at_start);
 
@@ -144,15 +145,15 @@ fn main() -> Result<()> {
         Command::Unschedule { idxs } => modify::unschedule_each(&idxs, &mut todos),
         Command::Today { idxs } => modify::schedule_each_today(&idxs, &mut todos),
         // ========== Filtered views
-        Command::List { filters } => view::list(&todos, &filters),
-        Command::ListPriority { filters } => view::list_priority(&todos, &filters),
-        Command::ListDone { filters } => view::done(&dones, &filters),
-        Command::DoneSummary { filters } => view::done_summary(&dones, &filters),
-        Command::ListProjects => view::projects(&todos),
-        Command::ListContexts => view::contexts(&todos),
+        Command::List { filters } => view::list(todos.iter(), &filters),
+        Command::ListPriority { filters } => view::list_priority(todos.iter(), &filters),
+        Command::ListDone { filters } => view::done(dones.iter(), &filters),
+        Command::DoneSummary { filters } => view::done_summary(dones.iter(), &filters),
+        Command::ListProjects => view::projects(todos.iter()),
+        Command::ListContexts => view::contexts(todos.iter()),
         // ========== Date-based views
-        Command::Due { n_days, filters } => view::due(&todos, n_days, &filters),
-        Command::NoDate { filters } => view::no_date(&todos, &filters),
+        Command::Due { n_days, filters } => view::due(todos.iter(), n_days, &filters),
+        Command::NoDate { filters } => view::no_date(todos.iter(), &filters),
         // ========== Date-based views
         Command::Archive => {
             autoarchive = false;
@@ -171,8 +172,8 @@ fn main() -> Result<()> {
             std::process::exit(1);
         }
     }
-    utility::save_to_file(&todos, std::env::var("TODOFILE")?)?;
-    utility::save_to_file(&dones, std::env::var("DONEFILE")?)?;
+    utility::save_to_file(todos.iter(), std::env::var("TODOFILE")?)?;
+    utility::save_to_file(dones.iter(), std::env::var("DONEFILE")?)?;
 
     if num_todos_at_start != 0 && todos.is_empty() {
         println!("TODOFILE is now empty");

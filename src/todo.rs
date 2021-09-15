@@ -50,12 +50,13 @@ impl Todo {
             &self.projects.join(" "),
             &self.contexts.join(" ")
         );
-        let has_all_pos = positives
-            .iter()
-            .all(|y| Todo::case_insensitive_match(&taskstr, y));
+
         let has_no_neg = !negatives
             .iter()
             .any(|y| Todo::case_insensitive_match(&taskstr, y));
+        let has_all_pos = positives
+            .iter()
+            .all(|y| Todo::case_insensitive_match(&taskstr, y));
         has_all_pos && has_no_neg
     }
 

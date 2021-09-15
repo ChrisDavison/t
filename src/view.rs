@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
+pub fn list<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
     for todo in utility::sort_by_priority(todo_filter(todos, filters)) {
         println!("{}", todo);
     }
@@ -16,17 +16,17 @@ pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn list_priority(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let sorted = utility::sort_by_priority(todos.iter());
-    for todo in
-        todo_filter(&sorted, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None))
-    {
+pub fn list_priority<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
+    let sorted = utility::sort_by_priority(
+        todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None)),
+    );
+    for todo in sorted {
         println!("{}", todo);
     }
     Ok(())
 }
 
-pub fn done(dones: &[Todo], filters: &[String]) -> Result<()> {
+pub fn done<'a>(dones: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
     for done in &utility::sort_by_priority(todo_filter(dones, filters)) {
         println!("{}", done);
     }
@@ -34,7 +34,7 @@ pub fn done(dones: &[Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
+pub fn done_summary<'a>(dones: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
     let today = utility::date_today();
     let mut last_week = HashMap::new();
 
@@ -67,7 +67,11 @@ pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
+pub fn due<'a>(
+    todos: impl Iterator<Item = &'a Todo>,
+    n_days: usize,
+    filters: &[String],
+) -> Result<()> {
     let mut datediffed_todos = Vec::new();
     for t in utility::todo_filter(todos, filters) {
         if t.due_date.is_some() {
@@ -91,7 +95,7 @@ pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn no_date(todos: &[Todo], filters: &[String]) -> Result<()> {
+pub fn no_date<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
     let undated_todos = todo_filter(todos, filters).filter(|todo| todo.due_date.is_none());
     for todo in utility::sort_by_priority(undated_todos) {
         println!("{}", todo);
@@ -99,7 +103,7 @@ pub fn no_date(todos: &[Todo], filters: &[String]) -> Result<()> {
     Ok(())
 }
 
-pub fn projects(todos: &[Todo]) -> Result<()> {
+pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut projects = HashMap::new();
     for t in todos {
         for project in &t.projects {
@@ -113,7 +117,7 @@ pub fn projects(todos: &[Todo]) -> Result<()> {
     Ok(())
 }
 
-pub fn contexts(todos: &[Todo]) -> Result<()> {
+pub fn contexts<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut contexts = HashMap::new();
     for t in todos {
         for context in &t.contexts {

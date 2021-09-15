@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use std::env;
 use std::fmt::Display;
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use super::todo::Todo;
@@ -11,13 +11,16 @@ use chrono::{Date, Duration, TimeZone, Utc};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn todo_filter<'a>(todos: &'a [Todo], filters: &[String]) -> impl Iterator<Item = &'a Todo> {
+pub fn todo_filter<'a>(
+    todos: impl Iterator<Item = &'a Todo>,
+    filters: &[String],
+) -> impl Iterator<Item = &'a Todo> {
     let (bad, good): (Vec<_>, Vec<_>) = filters
         .iter()
         .map(|x| x.to_string())
         .partition(|x| x.starts_with('-'));
 
-    todos.iter().filter(move |x| x.matches(&good, &bad))
+    todos.filter(move |x| x.matches(&good, &bad))
 }
 
 pub fn notify<T: Display>(message: &str, task: T) {
@@ -48,15 +51,15 @@ pub fn get_dones() -> Result<Vec<Todo>> {
     parse_file(&PathBuf::from(donefile))
 }
 
-pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
-    let todo_str = todos
-        .iter()
+pub fn save_to_file<'a>(todos: impl Iterator<Item = &'a Todo>, filename: String) -> Result<()> {
+    let f = fs::File::create(&filename)?;
+    let mut buf = BufWriter::new(f);
+    for t in todos
         .map(|x| x.format_for_save())
-        .collect::<Vec<_>>()
-        .join("\n");
-    fs::write(&filename, todo_str + "\n")
-        .map_err(|e| anyhow!("Couldn't write todos from {:#?} to file: {:?}", filename, e))?;
-    // crate::utility::notify("SAVED FILE", &filename);
+        .intersperse(String::from("\n"))
+    {
+        write!(buf, "{}", t)?;
+    }
     Ok(())
 }
 
