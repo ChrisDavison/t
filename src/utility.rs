@@ -100,7 +100,6 @@ fn iter_till_day_of_week(date: Date<Utc>, day_of_week: u8) -> Date<Utc> {
 pub fn join_non_empty(ss: impl Iterator<Item = impl ToString>) -> String {
     ss.map(|x| x.to_string())
         .filter(|x| !x.is_empty())
-        // .cloned()
         .intersperse(String::from(" "))
         .collect()
 }

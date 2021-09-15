@@ -46,7 +46,7 @@ impl Todo {
     pub fn matches(&self, positives: &[impl ToString], negatives: &[impl ToString]) -> bool {
         let taskstr = format!(
             "{}{}{}",
-            self.task.clone(),
+            self.task,
             &self.projects.join(" "),
             &self.contexts.join(" ")
         );
@@ -103,18 +103,18 @@ impl Todo {
         utility::notify("UNSCHEDULED", &self);
     }
 
-    pub fn days_overdue(&self) -> i64 {
+    pub fn days_overdue(&self) -> super::Result<i64> {
         let now: Date<Utc> = utility::date_today();
         let naive = NaiveDate::parse_from_str(
             self.due_date.as_ref().unwrap_or(&String::from("")).as_ref(),
             "%Y-%m-%d",
         )
-        .expect(&format!("Couldn't parse date {:#?}", self).to_string());
+        .map_err(|e| anyhow::anyhow!("Couldn't parse date {:#?}: {}", self, e))?;
         let task_date = Date::from_utc(naive, *now.offset());
-        (now - task_date).num_days()
+        Ok((now - task_date).num_days())
     }
 
-    pub fn days_since_done(&self) -> i64 {
+    pub fn days_since_done(&self) -> super::Result<i64> {
         let now: Date<Utc> = utility::date_today();
         let naive = NaiveDate::parse_from_str(
             self.done_date
@@ -123,9 +123,9 @@ impl Todo {
                 .as_ref(),
             "%Y-%m-%d",
         )
-        .expect(&format!("Couldn't parse date {:#?}", self).to_string());
+        .map_err(|e| anyhow::anyhow!("Couldn't parse date {:#?}: {}", self, e).to_string())?;
         let task_date = Date::from_utc(naive, *now.offset());
-        (now - task_date).num_days()
+        Ok((now - task_date).num_days())
     }
 
     #[inline(always)]
@@ -140,14 +140,15 @@ impl Todo {
     pub fn format_for_save(&self) -> String {
         utility::join_non_empty(
             [
-                self.done_or_priority_string(),
-                self.task.clone(),
-                self.due_date
+                &self.done_or_priority_string(),
+                &self.task,
+                &self
+                    .due_date
                     .as_ref()
                     .map(|x| format!("due:{}", x))
                     .unwrap_or_default(),
-                self.projects.join(" "),
-                self.contexts.join(" "),
+                &self.projects.join(" "),
+                &self.contexts.join(" "),
             ]
             .iter(),
         )
@@ -157,9 +158,9 @@ impl Todo {
     pub fn donesummary_format(&self) -> String {
         utility::join_non_empty(
             [
-                self.task.clone(),
-                self.projects.join(" "),
-                self.contexts.join(" "),
+                &self.task,
+                &self.projects.join(" "),
+                &self.contexts.join(" "),
             ]
             .iter(),
         )
@@ -225,9 +226,10 @@ impl Display for Todo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let pre = utility::join_non_empty(
             [
-                self.done_or_priority_string(),
-                self.task.clone(),
-                self.due_date
+                &self.done_or_priority_string(),
+                &self.task,
+                &self
+                    .due_date
                     .as_ref()
                     .map(|x| format!("due:{}", x))
                     .unwrap_or_default(),
@@ -235,7 +237,7 @@ impl Display for Todo {
             .iter(),
         );
         let post =
-            utility::join_non_empty([self.projects.join(" "), self.contexts.join(" ")].iter());
+            utility::join_non_empty([&self.projects.join(" "), &self.contexts.join(" ")].iter());
 
         let colourer = match self.pri {
             TodoPriority::A => colour::yellow,

@@ -209,15 +209,18 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
             .collect::<Vec<String>>()
     };
 
-    let rest_as_usizes_within_bounds = |pargs: pico_args::Arguments, limit: usize| {
-        let mut usizes: Vec<usize> = rest_as_strings(pargs)
-            .iter()
-            .map(|x| x.parse().expect("Failed to parse indice"))
-            .filter(|&idx| idx < limit)
-            .collect();
-        usizes.sort_unstable();
-        usizes
-    };
+    let rest_as_usizes_within_bounds =
+        |pargs: pico_args::Arguments, limit: usize| -> Result<Vec<usize>> {
+            let mut usizes: Vec<usize> = Vec::new();
+            for string in rest_as_strings(pargs) {
+                let parsed = string.parse()?;
+                if parsed < limit {
+                    usizes.push(parsed);
+                }
+            }
+            usizes.sort_unstable();
+            Ok(usizes)
+        };
 
     let command = match pargs.subcommand()?.as_deref() {
         Some("help" | "h") => {
@@ -252,23 +255,23 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
             idx: pargs.free_from_str()?,
         },
         Some("remove" | "rm" | "delete" | "del") => Command::Remove {
-            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos)?,
         },
         Some("do") => Command::Do {
-            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos)?,
         },
         Some("undo") => Command::Undo {
-            idxs: rest_as_usizes_within_bounds(pargs, n_dones),
+            idxs: rest_as_usizes_within_bounds(pargs, n_dones)?,
         },
         Some("schedule") => Command::Schedule {
             idx: pargs.free_from_str()?,
             date: rest_as_strings(pargs).join(" "),
         },
         Some("unschedule") => Command::Unschedule {
-            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos)?,
         },
         Some("today") => Command::Today {
-            idxs: rest_as_usizes_within_bounds(pargs, n_todos),
+            idxs: rest_as_usizes_within_bounds(pargs, n_todos)?,
         },
         Some("list" | "ls") => Command::List {
             filters: rest_as_strings(pargs),

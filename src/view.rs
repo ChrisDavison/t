@@ -43,7 +43,7 @@ pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
         .parse()?;
 
     for done in utility::todo_filter(dones, filters) {
-        let delta = done.days_since_done();
+        let delta = done.days_since_done()?;
         if delta < n_days {
             let entry = last_week.entry(delta).or_insert_with(Vec::new);
             entry.push(done.clone());
@@ -68,10 +68,12 @@ pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
 }
 
 pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
-    let mut datediffed_todos: Vec<(i64, Todo)> = utility::todo_filter(todos, filters)
-        .filter(|x| x.due_date.is_some())
-        .map(|x| (x.days_overdue(), x.to_owned()))
-        .collect();
+    let mut datediffed_todos = Vec::new();
+    for t in utility::todo_filter(todos, filters) {
+        if t.due_date.is_some() {
+            datediffed_todos.push((t.days_overdue()?, t.to_owned()));
+        }
+    }
     datediffed_todos.sort_by(|(datediff1, _), (datediff2, _)| datediff2.cmp(datediff1));
     for (days_overdue, t) in datediffed_todos {
         let days_in_future = days_overdue.abs() as usize;
