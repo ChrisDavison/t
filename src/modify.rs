@@ -1,4 +1,7 @@
-use super::{todo::Todo, utility};
+use super::{
+    todo::{Todo, TodoPriority},
+    utility,
+};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
@@ -41,6 +44,12 @@ pub fn prepend(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
 
 pub fn prioritise(idx: usize, todos: &mut Vec<Todo>, priority: Option<String>) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
+        let priority = match priority.as_deref() {
+            Some("A") => TodoPriority::A,
+            Some("B") => TodoPriority::B,
+            Some("C") => TodoPriority::C,
+            _ => TodoPriority::None,
+        };
         t.prioritise(priority);
     }
     Ok(())
@@ -140,7 +149,6 @@ pub fn schedule_each_today(indices: &[usize], todos: &mut Vec<Todo>) -> Result<(
 }
 
 #[cfg(test)]
-#[allow(dead_code, unused_imports)]
 mod tests {
     use super::*;
 
@@ -149,13 +157,13 @@ mod tests {
         let mut tasks = vec![Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         }];
         prioritise(0, &mut tasks, Some("A".to_string())).unwrap();
-        assert_eq!(tasks[0].pri, Some("A".to_string()))
+        assert_eq!(tasks[0].pri, TodoPriority::A)
     }
 }

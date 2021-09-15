@@ -1,21 +1,22 @@
+use anyhow::anyhow;
 use std::env;
 use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
-#[allow(unused_imports)]
-use chrono::{Date, Duration, NaiveDate, TimeZone, Utc};
-
 use super::todo::Todo;
+
+use chrono::{Date, Duration, TimeZone, Utc};
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn todo_filter<'a>(todos: &'a [Todo], filters: &'a [String]) -> impl Iterator<Item = &'a Todo> {
+pub fn todo_filter<'a>(todos: &'a [Todo], filters: &[String]) -> impl Iterator<Item = &'a Todo> {
     let (bad, good): (Vec<_>, Vec<_>) = filters
         .iter()
         .map(|x| x.to_string())
         .partition(|x| x.starts_with('-'));
+
     todos.iter().filter(move |x| x.matches(&good, &bad))
 }
 
@@ -23,20 +24,9 @@ pub fn notify<T: Display>(message: &str, task: T) {
     println!("{}: {}", message, task);
 }
 
-pub fn filter_todos(todos: &[Todo], filters: &[String]) -> Vec<Todo> {
-    let (negatives, positives): (Vec<_>, Vec<_>) = filters
-        .iter()
-        .map(|x| x.to_string())
-        .partition(|x| x.starts_with('-'));
-    todos
-        .iter()
-        .filter(|x| x.matches(&positives, &negatives))
-        .cloned()
-        .collect()
-}
-
 fn parse_file(filename: &Path) -> Result<Vec<Todo>> {
-    let f = std::fs::File::open(filename).expect("Couldn't open file");
+    let f =
+        std::fs::File::open(filename).map_err(|_| anyhow!("Couldn't open file {:#?}", filename))?;
     let reader = BufReader::new(f);
 
     let mut todos = Vec::new();
@@ -64,14 +54,10 @@ pub fn save_to_file(todos: &[Todo], filename: String) -> Result<()> {
         .map(|x| x.format_for_save())
         .collect::<Vec<_>>()
         .join("\n");
-    fs::write(&filename, todo_str + "\n").expect("Couldn't write todos to file");
+    fs::write(&filename, todo_str + "\n")
+        .map_err(|e| anyhow!("Couldn't write todos from {:#?} to file: {:?}", filename, e))?;
     // crate::utility::notify("SAVED FILE", &filename);
     Ok(())
-}
-
-pub fn parse_date(date: Option<&String>) -> Option<NaiveDate> {
-    date.map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .flatten()
 }
 
 pub fn date_today() -> Date<Utc> {
@@ -110,8 +96,22 @@ fn iter_till_day_of_week(date: Date<Utc>, day_of_week: u8) -> Date<Utc> {
     date
 }
 
+#[inline(always)]
+pub fn join_non_empty(ss: impl Iterator<Item = impl ToString>) -> String {
+    ss.map(|x| x.to_string())
+        .filter(|x| !x.is_empty())
+        // .cloned()
+        .intersperse(String::from(" "))
+        .collect()
+}
+
+pub fn sort_by_priority<'a, I: Iterator<Item = &'a Todo>>(todos: I) -> Vec<Todo> {
+    let mut todos: Vec<Todo> = todos.cloned().collect();
+    todos.sort_by(|a, b| a.pri.cmp(&b.pri));
+    todos
+}
+
 #[cfg(test)]
-#[allow(unused_imports, dead_code)]
 mod tests {
     use super::*;
     use chrono::TimeZone;

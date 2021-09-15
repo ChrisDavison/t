@@ -4,12 +4,12 @@ description = "Streamlined implementation of todo.txt based on the features, for
 edition = "2018"
 license = "GPL-3.0-only"
 name = "t"
-version = "0.45.0"
-
+version = "0.48.0"
 [dependencies]
 anyhow = "1.0"
 chrono = "0.4.6"
 colored = "*"
-pico-args = "*"
+itertools = "*"
 log = "*"
+pico-args = "*"
 pretty_env_logger = "*"

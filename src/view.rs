@@ -3,30 +3,13 @@ use super::{
     utility::{self, todo_filter},
 };
 
-use chrono::{Date, Duration, NaiveDate, Utc};
+use chrono::Duration;
 use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
-pub fn days_overdue(t: &Todo) -> i64 {
-    let now: Date<Utc> = utility::date_today();
-    let naive = NaiveDate::parse_from_str(
-        t.due_date.as_ref().unwrap_or(&String::from("")).as_ref(),
-        "%Y-%m-%d",
-    )
-    .expect("Couldn't parse date");
-    let task_date = Date::from_utc(naive, *now.offset());
-    (now - task_date).num_days()
-}
-
 pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let mut todos: Vec<Todo> = todo_filter(todos, filters).cloned().collect();
-    todos.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
-        (Some(a), Some(b)) => a.cmp(b),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        _ => std::cmp::Ordering::Greater,
-    });
-    for todo in todos {
+    for todo in utility::sort_by_priority(todo_filter(todos, filters)) {
         println!("{}", todo);
     }
 
@@ -34,26 +17,17 @@ pub fn list(todos: &[Todo], filters: &[String]) -> Result<()> {
 }
 
 pub fn list_priority(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let mut todos = todos.to_vec();
-    todos.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
-        (Some(a), Some(b)) => a.cmp(b),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        _ => std::cmp::Ordering::Greater,
-    });
-    for todo in todo_filter(&todos, filters).filter(|t| t.pri.is_some()) {
+    let sorted = utility::sort_by_priority(todos.iter());
+    for todo in
+        todo_filter(&sorted, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None))
+    {
         println!("{}", todo);
     }
     Ok(())
 }
 
 pub fn done(dones: &[Todo], filters: &[String]) -> Result<()> {
-    let mut dones = dones.to_vec();
-    dones.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
-        (Some(a), Some(b)) => a.cmp(b),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        _ => std::cmp::Ordering::Greater,
-    });
-    for done in todo_filter(&dones, filters) {
+    for done in &utility::sort_by_priority(todo_filter(dones, filters)) {
         println!("{}", done);
     }
 
@@ -68,14 +42,11 @@ pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
         .unwrap_or_else(|_| "7".to_string())
         .parse()?;
 
-    for done in utility::filter_todos(dones, filters) {
-        if let Some(d) = utility::parse_date(done.done_date.as_ref()) {
-            let task_date = Date::from_utc(d, *today.offset());
-            let delta = (today - task_date).num_days();
-            if delta < n_days {
-                let entry = last_week.entry(delta).or_insert_with(Vec::new);
-                entry.push(done.clone());
-            }
+    for done in utility::todo_filter(dones, filters) {
+        let delta = done.days_since_done();
+        if delta < n_days {
+            let entry = last_week.entry(delta).or_insert_with(Vec::new);
+            entry.push(done.clone());
         }
     }
 
@@ -97,17 +68,14 @@ pub fn done_summary(dones: &[Todo], filters: &[String]) -> Result<()> {
 }
 
 pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
-    let todos = utility::filter_todos(todos, filters);
-
-    let mut datediffed_todos: Vec<(i64, Todo)> = todos
-        .iter()
+    let mut datediffed_todos: Vec<(i64, Todo)> = utility::todo_filter(todos, filters)
         .filter(|x| x.due_date.is_some())
-        .map(|x| (days_overdue(x), x.to_owned()))
+        .map(|x| (x.days_overdue(), x.to_owned()))
         .collect();
     datediffed_todos.sort_by(|(datediff1, _), (datediff2, _)| datediff2.cmp(datediff1));
     for (days_overdue, t) in datediffed_todos {
         let days_in_future = days_overdue.abs() as usize;
-        if days_in_future > n_days {
+        if days_overdue < 0 && days_in_future > n_days {
             // Too far in future
             continue;
         }
@@ -122,20 +90,10 @@ pub fn due(todos: &[Todo], n_days: usize, filters: &[String]) -> Result<()> {
 }
 
 pub fn no_date(todos: &[Todo], filters: &[String]) -> Result<()> {
-    let mut undated_todos: Vec<Todo> = todo_filter(todos, filters)
-        .filter(|todo| todo.due_date.is_none())
-        .cloned()
-        .collect();
-    undated_todos.sort_by(|a, b| match (a.pri.as_ref(), b.pri.as_ref()) {
-        (Some(a), Some(b)) => a.cmp(b),
-        (Some(_), None) => std::cmp::Ordering::Less,
-        _ => std::cmp::Ordering::Greater,
-    });
-
-    for todo in undated_todos {
+    let undated_todos = todo_filter(todos, filters).filter(|todo| todo.due_date.is_none());
+    for todo in utility::sort_by_priority(undated_todos) {
         println!("{}", todo);
     }
-
     Ok(())
 }
 

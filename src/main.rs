@@ -3,6 +3,7 @@ extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 
+mod colour;
 mod modify;
 mod todo;
 mod utility;
@@ -58,7 +59,6 @@ enum Command {
     Archive,
 }
 
-#[allow(dead_code)]
 const USAGE: &str = "usage: t <COMMAND> [ARGS]...
 
 Commands:

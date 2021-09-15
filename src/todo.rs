@@ -1,20 +1,42 @@
-use super::utility;
-use colored::*;
-use std::fmt;
+use chrono::{Date, NaiveDate, Utc};
 
+use super::{colour, utility};
+use std::fmt::{self, Display};
+use std::str::FromStr;
+
+// use itertools::Itertools;
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct Todo {
     pub idx: usize,
     pub task: String,
-    pub pri: Option<String>,
+    pub pri: TodoPriority,
     pub projects: Vec<String>,
     pub contexts: Vec<String>,
     pub done_date: Option<String>,
     pub due_date: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
+pub enum TodoPriority {
+    A,
+    B,
+    C,
+    None,
+}
+
+impl Display for TodoPriority {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TodoPriority::A => write!(f, "(A)"),
+            TodoPriority::B => write!(f, "(B)"),
+            TodoPriority::C => write!(f, "(C)"),
+            _ => write!(f, ""),
+        }
+    }
+}
+
 impl Todo {
-    fn case_insensitive_match(haystack: impl ToString, needle: impl ToString) -> bool {
+    fn case_insensitive_match(haystack: &impl ToString, needle: &impl ToString) -> bool {
         haystack
             .to_string()
             .to_ascii_lowercase()
@@ -22,19 +44,24 @@ impl Todo {
     }
 
     pub fn matches(&self, positives: &[impl ToString], negatives: &[impl ToString]) -> bool {
-        let taskstr = self.task.clone() + &self.projects.join(" ") + &self.contexts.join(" ");
+        let taskstr = format!(
+            "{}{}{}",
+            self.task.clone(),
+            &self.projects.join(" "),
+            &self.contexts.join(" ")
+        );
         let has_all_pos = positives
             .iter()
-            .all(|y| Todo::case_insensitive_match(&taskstr, y.to_string()));
+            .all(|y| Todo::case_insensitive_match(&taskstr, y));
         let has_no_neg = !negatives
             .iter()
-            .any(|y| Todo::case_insensitive_match(&taskstr, y.to_string()));
+            .any(|y| Todo::case_insensitive_match(&taskstr, y));
         has_all_pos && has_no_neg
     }
 
     pub fn append_text(&mut self, text: &str) {
-        self.task.push(' ');
-        self.task.push_str(text);
+        self.task = format!("{} {}", self.task, text);
+        // self.task.push_str(text);
         utility::notify("APPENDED", &self);
     }
 
@@ -43,9 +70,9 @@ impl Todo {
         utility::notify("PREPENDED", &self);
     }
 
-    pub fn prioritise(&mut self, priority: Option<String>) {
+    pub fn prioritise(&mut self, priority: TodoPriority) {
         self.pri = priority;
-        if self.pri.is_some() {
+        if !matches!(self.pri, TodoPriority::None) {
             utility::notify("PRIORITISED", &self);
         } else {
             utility::notify("DEPRIORITISED", self);
@@ -54,7 +81,7 @@ impl Todo {
 
     pub fn mark_done(&mut self) {
         self.done_date = Some(utility::date_today().format("%Y-%m-%d").to_string());
-        self.pri = None;
+        self.pri = TodoPriority::None;
         utility::notify("DONE", &self);
     }
 
@@ -76,61 +103,75 @@ impl Todo {
         utility::notify("UNSCHEDULED", &self);
     }
 
-    pub fn format_for_save(&self) -> String {
-        let mut to_output: Vec<String> = vec![];
-
-        if let Some(done) = &self.done_date {
-            to_output.push(format!("x {}", done));
-        };
-
-        if let Some(p) = self.pri.as_ref() {
-            if self.done_date.is_none() {
-                to_output.push(format!("({})", p));
-            }
-        };
-
-        to_output.push(self.task.to_string());
-
-        if let Some(due) = &self.due_date {
-            to_output.push(format!("due:{}", due))
-        };
-
-        let projects: String = self.projects.join(" ");
-        if !projects.is_empty() {
-            to_output.push(projects);
-        }
-
-        let contexts: String = self.contexts.join(" ");
-        if !contexts.is_empty() {
-            to_output.push(contexts);
-        }
-
-        to_output.join(" ")
+    pub fn days_overdue(&self) -> i64 {
+        let now: Date<Utc> = utility::date_today();
+        let naive = NaiveDate::parse_from_str(
+            self.due_date.as_ref().unwrap_or(&String::from("")).as_ref(),
+            "%Y-%m-%d",
+        )
+        .expect(&format!("Couldn't parse date {:#?}", self).to_string());
+        let task_date = Date::from_utc(naive, *now.offset());
+        (now - task_date).num_days()
     }
 
+    pub fn days_since_done(&self) -> i64 {
+        let now: Date<Utc> = utility::date_today();
+        let naive = NaiveDate::parse_from_str(
+            self.done_date
+                .as_ref()
+                .unwrap_or(&String::from(""))
+                .as_ref(),
+            "%Y-%m-%d",
+        )
+        .expect(&format!("Couldn't parse date {:#?}", self).to_string());
+        let task_date = Date::from_utc(naive, *now.offset());
+        (now - task_date).num_days()
+    }
+
+    #[inline(always)]
+    fn done_or_priority_string(&self) -> String {
+        match (&self.done_date, self.pri) {
+            (Some(done), _) => format!("x {}", done),
+            (None, prio) => format!("{}", prio),
+        }
+    }
+
+    // display [x DONEDATE | PRIORITY] TEXT [DUEDATE] +TAGS @CONTEXTS
+    pub fn format_for_save(&self) -> String {
+        utility::join_non_empty(
+            [
+                self.done_or_priority_string(),
+                self.task.clone(),
+                self.due_date
+                    .as_ref()
+                    .map(|x| format!("due:{}", x))
+                    .unwrap_or_default(),
+                self.projects.join(" "),
+                self.contexts.join(" "),
+            ]
+            .iter(),
+        )
+    }
+
+    // display TEXT +TAGS @CONTEXTS
     pub fn donesummary_format(&self) -> String {
-        let mut to_output: Vec<String> = vec![self.task.to_string()];
-
-        let projects: String = self.projects.join(" ");
-        if !projects.is_empty() {
-            to_output.push(projects);
-        }
-
-        let contexts: String = self.contexts.join(" ");
-        if !contexts.is_empty() {
-            to_output.push(contexts);
-        }
-
-        to_output.join(" ")
+        utility::join_non_empty(
+            [
+                self.task.clone(),
+                self.projects.join(" "),
+                self.contexts.join(" "),
+            ]
+            .iter(),
+        )
     }
 }
 
 // Implement .parse() for Todo
-impl std::str::FromStr for Todo {
+impl FromStr for Todo {
     type Err = anyhow::Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut done_date = None;
-        let mut priority = None;
+        let mut priority = TodoPriority::None;
         let mut task_parts = Vec::new();
         let mut projects = Vec::new();
         let mut contexts = Vec::new();
@@ -151,7 +192,12 @@ impl std::str::FromStr for Todo {
                 idx = 2;
                 continue;
             } else if is_priority(token) {
-                priority = Some(token[1..2].to_string());
+                priority = match &token[1..2] {
+                    "A" => TodoPriority::A,
+                    "B" => TodoPriority::B,
+                    "C" => TodoPriority::C,
+                    _ => TodoPriority::None,
+                }
             } else if let Some(date) = token.strip_prefix("due:") {
                 due_date = Some(date.to_string());
             } else if token.starts_with('@') {
@@ -175,53 +221,60 @@ impl std::str::FromStr for Todo {
     }
 }
 
-impl fmt::Display for Todo {
+impl Display for Todo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut to_colour: Vec<String> = vec![format!("{:3}.", self.idx)];
+        let pre = utility::join_non_empty(
+            [
+                self.done_or_priority_string(),
+                self.task.clone(),
+                self.due_date
+                    .as_ref()
+                    .map(|x| format!("due:{}", x))
+                    .unwrap_or_default(),
+            ]
+            .iter(),
+        );
+        let post =
+            utility::join_non_empty([self.projects.join(" "), self.contexts.join(" ")].iter());
 
-        if let Some(p) = self.pri.as_ref() {
-            to_colour.push(format!("({})", p));
+        let colourer = match self.pri {
+            TodoPriority::A => colour::yellow,
+            TodoPriority::B => colour::green,
+            TodoPriority::C => colour::blue,
+            _ => colour::none,
         };
 
-        if let Some(done) = &self.done_date {
-            to_colour.push(format!("x {}", done))
+        let (pre, post) = if colour::should_colour() {
+            (colourer(&pre), colour::red(&post))
+        } else {
+            (pre, post)
         };
 
-        to_colour.push(self.task.to_string());
-
-        if let Some(due) = &self.due_date {
-            to_colour.push(format!("due:{}", due))
-        };
-
-        let to_colour = to_colour.join(" ");
-
-        let colourer = match self.pri.as_deref() {
-            Some("A") => |s: String| s.yellow().to_string(),
-            Some("B") => |s: String| s.green().to_string(),
-            Some("C") => |s: String| s.blue().to_string(),
-            _ => |s: String| s.to_string(),
-        };
-
-        let mut to_output = vec![colourer(to_colour)];
-
-        let projects: String = self.projects.join(" ");
-        if !projects.is_empty() {
-            to_output.push(projects.red().to_string());
-        }
-
-        let contexts: String = self.contexts.join(" ");
-        if !contexts.is_empty() {
-            to_output.push(contexts.red().to_string());
-        }
-
-        write!(f, "{}", to_output.join(" "))
+        write!(f, "{:3}. {} {}", self.idx, pre, post)
     }
 }
 
 #[cfg(test)]
-#[allow(dead_code, unused_imports)]
 mod tests {
-    use crate::{todo::Todo, utility::date_today};
+    use crate::{
+        todo::{Todo, TodoPriority},
+        utility::date_today,
+    };
+
+    #[test]
+    fn can_display_task() {
+        let input = "this is a test +p1 +p2 @c1";
+        let t = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: None,
+        };
+        assert_eq!(format!("  0. {}", input), t.to_string());
+    }
 
     #[test]
     fn can_parse_task() {
@@ -229,7 +282,7 @@ mod tests {
         let t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -239,12 +292,13 @@ mod tests {
         assert_eq!(t, got);
     }
 
+    #[test]
     fn can_parse_done_task() {
         let input = "x 2021-01-01 this is a test +p1 +p2 @c1";
         let t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: Some("A".to_string()),
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: Some("2021-01-01".to_string()),
@@ -259,7 +313,7 @@ mod tests {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -270,7 +324,7 @@ mod tests {
         let expected = Todo {
             idx: 0,
             task: "this is a test EXTRA".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -285,7 +339,7 @@ mod tests {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -296,7 +350,7 @@ mod tests {
         let expected = Todo {
             idx: 0,
             task: "EXTRA this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -311,7 +365,7 @@ mod tests {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -322,7 +376,7 @@ mod tests {
         let expected = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -337,7 +391,7 @@ mod tests {
         let mut t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -348,7 +402,7 @@ mod tests {
         let expected = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -363,7 +417,7 @@ mod tests {
         let t = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -380,7 +434,7 @@ mod tests {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -390,7 +444,28 @@ mod tests {
         let want = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some(date_today().format("%F").to_string()),
+            due_date: Some(date_today().format("%F").to_string()),
+        };
+        assert_eq!(input, want);
+
+        let mut input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::A,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some(date_today().format("%F").to_string()),
+        };
+        input.mark_done();
+        let want = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: Some(date_today().format("%F").to_string()),
@@ -404,7 +479,7 @@ mod tests {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: Some(date_today().format("%F").to_string()),
@@ -414,7 +489,7 @@ mod tests {
         let want = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -428,17 +503,17 @@ mod tests {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
-        input.prioritise(Some("A".to_string()));
+        input.prioritise(TodoPriority::A);
         let want = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: Some("A".to_string()),
+            pri: TodoPriority::A,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
@@ -452,22 +527,84 @@ mod tests {
         let mut input = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: Some("A".to_string()),
+            pri: TodoPriority::A,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
-        input.prioritise(None);
+        input.prioritise(TodoPriority::None);
         let want = Todo {
             idx: 0,
             task: "this is a test".to_string(),
-            pri: None,
+            pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
             contexts: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
         assert_eq!(input, want);
+    }
+
+    #[test]
+    fn can_format_for_saving() {
+        let input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::A,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: None,
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(
+            input.format_for_save(),
+            "(A) this is a test due:2021-01-01 +p1 +p2 @c1"
+        );
+
+        let input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some("2021-01-01".to_string()),
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(
+            input.format_for_save(),
+            "x 2021-01-01 this is a test due:2021-01-01 +p1 +p2 @c1"
+        );
+
+        let input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::None,
+            projects: vec![],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some("2021-01-01".to_string()),
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(
+            input.format_for_save(),
+            "x 2021-01-01 this is a test due:2021-01-01 @c1"
+        );
+    }
+
+    #[test]
+    fn can_format_todo_output() {
+        let input = Todo {
+            idx: 0,
+            task: "this is a test".to_string(),
+            pri: TodoPriority::None,
+            projects: vec!["+p1".to_string(), "+p2".to_string()],
+            contexts: vec!["@c1".to_string()],
+            done_date: Some("2021-01-01".to_string()),
+            due_date: Some("2021-01-01".to_string()),
+        };
+        assert_eq!(
+            "  0. x 2021-01-01 this is a test due:2021-01-01 +p1 +p2 @c1",
+            input.to_string(),
+        );
     }
 }
