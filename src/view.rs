@@ -79,18 +79,29 @@ pub fn due<'a>(
         }
     }
     datediffed_todos.sort_by(|(datediff1, _), (datediff2, _)| datediff2.cmp(datediff1));
+    let mut prev = None;
     for (days_overdue, t) in datediffed_todos {
         let days_in_future = days_overdue.abs() as usize;
         if days_overdue < 0 && days_in_future > n_days {
             // Too far in future
             continue;
         }
-        let pre = match days_overdue {
-            0 => "TODAY:".to_string(),
-            1.. => format!("OVERDUE {} days:", days_overdue),
-            _ => format!("IN {} days:", days_in_future),
+        let header = match days_overdue {
+            0 => "Today".to_string(),
+            1.. => format!("Overdue {} days", days_overdue),
+            _ => format!("In {} days", days_in_future),
         };
-        println!("{:15} {}", pre, t);
+        let header = format!("..... {} {}", header, ".".repeat(73 - header.len()));
+        match prev {
+            Some(p) => {
+                if days_overdue != p {
+                    println!("\n{}\n", header);
+                }
+            }
+            None => println!("{}\n", header),
+        }
+        println!("{}", t);
+        prev = Some(days_overdue);
     }
     Ok(())
 }
