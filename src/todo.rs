@@ -195,9 +195,9 @@ impl FromStr for Todo {
                 continue;
             } else if is_priority(token) {
                 priority = match &token[1..2] {
-                    "A" => TodoPriority::A,
-                    "B" => TodoPriority::B,
-                    "C" => TodoPriority::C,
+                    "A" | "a" => TodoPriority::A,
+                    "B" | "b" => TodoPriority::B,
+                    "C" | "c" => TodoPriority::C,
                     _ => TodoPriority::None,
                 }
             } else if let Some(date) = token.strip_prefix("due:") {

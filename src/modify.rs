@@ -45,9 +45,9 @@ pub fn prepend(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
 pub fn prioritise(idx: usize, todos: &mut Vec<Todo>, priority: Option<String>) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
         let priority = match priority.as_deref() {
-            Some("A") => TodoPriority::A,
-            Some("B") => TodoPriority::B,
-            Some("C") => TodoPriority::C,
+            Some("A" | "a") => TodoPriority::A,
+            Some("B" | "b") => TodoPriority::B,
+            Some("C" | "c") => TodoPriority::C,
             _ => TodoPriority::None,
         };
         t.prioritise(priority);
