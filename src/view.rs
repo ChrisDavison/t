@@ -34,13 +34,18 @@ pub fn done<'a>(dones: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Re
     Ok(())
 }
 
-pub fn done_summary<'a>(dones: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
+pub fn done_summary<'a>(
+    dones: impl Iterator<Item = &'a Todo>,
+    filters: &[String],
+    n_days: i64,
+) -> Result<()> {
     let today = utility::date_today();
     let mut last_week = HashMap::new();
 
-    let n_days = std::env::var("T_DONESUMMARY_DAYS")
-        .unwrap_or_else(|_| "7".to_string())
-        .parse()?;
+    // let n_days = std::env::var("T_DONESUMMARY_DAYS")
+    //     .unwrap_or_else(|_| "7".to_string())
+    //     .parse()?;
+    dbg!(&n_days);
 
     for done in utility::todo_filter(dones, filters) {
         let delta = done.days_since_done()?;
@@ -50,7 +55,7 @@ pub fn done_summary<'a>(dones: impl Iterator<Item = &'a Todo>, filters: &[String
         }
     }
 
-    for i in (0..=6).rev() {
+    for i in (0..=n_days).rev() {
         match last_week.get(&i) {
             Some(dones) => {
                 let that_day = today - Duration::days(i);

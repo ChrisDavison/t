@@ -50,7 +50,7 @@ enum Command {
     /// Contexts
     ListContexts,
     /// View done tasks, by date, for last N days
-    DoneSummary { filters: Vec<String> },
+    DoneSummary { days: i64, filters: Vec<String> },
     /// View scheduled tasks
     Due { n_days: usize, filters: Vec<String> },
     /// View unscheduled tasks
@@ -148,7 +148,7 @@ fn main() -> Result<()> {
         Command::List { filters } => view::list(todos.iter(), &filters),
         Command::ListPriority { filters } => view::list_priority(todos.iter(), &filters),
         Command::ListDone { filters } => view::done(dones.iter(), &filters),
-        Command::DoneSummary { filters } => view::done_summary(dones.iter(), &filters),
+        Command::DoneSummary { days, filters } => view::done_summary(dones.iter(), &filters, days),
         Command::ListProjects => view::projects(todos.iter()),
         Command::ListContexts => view::contexts(todos.iter()),
         // ========== Date-based views
@@ -286,6 +286,7 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
         Some("listprojects" | "prj" | "lsprj" | "projects") => Command::ListProjects,
         Some("listcontexts" | "con" | "lscon" | "contexts") => Command::ListContexts,
         Some("donesummary" | "ds") => Command::DoneSummary {
+            days: pargs.value_from_str("--days").unwrap_or(7),
             filters: rest_as_strings(pargs),
         },
 
