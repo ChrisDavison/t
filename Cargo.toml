@@ -15,4 +15,4 @@ pico-args = "*"
 pretty_env_logger = "*"
 
 [profile.release]
-lto=true
+lto="thin"

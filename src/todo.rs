@@ -21,6 +21,29 @@ pub enum TodoPriority {
     A,
     B,
     C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
     None,
 }
 
@@ -30,8 +53,72 @@ impl Display for TodoPriority {
             TodoPriority::A => write!(f, "(A)"),
             TodoPriority::B => write!(f, "(B)"),
             TodoPriority::C => write!(f, "(C)"),
+            TodoPriority::D => write!(f, "(D)"),
+            TodoPriority::E => write!(f, "(E)"),
+            TodoPriority::F => write!(f, "(F)"),
+            TodoPriority::G => write!(f, "(G)"),
+            TodoPriority::H => write!(f, "(H)"),
+            TodoPriority::I => write!(f, "(I)"),
+            TodoPriority::J => write!(f, "(J)"),
+            TodoPriority::K => write!(f, "(K)"),
+            TodoPriority::L => write!(f, "(L)"),
+            TodoPriority::M => write!(f, "(M)"),
+            TodoPriority::N => write!(f, "(N)"),
+            TodoPriority::O => write!(f, "(O)"),
+            TodoPriority::P => write!(f, "(P)"),
+            TodoPriority::Q => write!(f, "(Q)"),
+            TodoPriority::R => write!(f, "(R)"),
+            TodoPriority::S => write!(f, "(S)"),
+            TodoPriority::T => write!(f, "(T)"),
+            TodoPriority::U => write!(f, "(U)"),
+            TodoPriority::V => write!(f, "(V)"),
+            TodoPriority::W => write!(f, "(W)"),
+            TodoPriority::X => write!(f, "(X)"),
+            TodoPriority::Y => write!(f, "(Y)"),
+            TodoPriority::Z => write!(f, "(Z)"),
             _ => write!(f, ""),
         }
+    }
+}
+
+impl FromStr for TodoPriority {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_ascii_uppercase().as_str() {
+            "A" => Ok(TodoPriority::A),
+            "B" => Ok(TodoPriority::B),
+            "C" => Ok(TodoPriority::C),
+            "D" => Ok(TodoPriority::D),
+            "E" => Ok(TodoPriority::E),
+            "F" => Ok(TodoPriority::F),
+            "G" => Ok(TodoPriority::G),
+            "H" => Ok(TodoPriority::H),
+            "I" => Ok(TodoPriority::I),
+            "J" => Ok(TodoPriority::J),
+            "K" => Ok(TodoPriority::K),
+            "L" => Ok(TodoPriority::L),
+            "M" => Ok(TodoPriority::M),
+            "N" => Ok(TodoPriority::N),
+            "O" => Ok(TodoPriority::O),
+            "P" => Ok(TodoPriority::P),
+            "Q" => Ok(TodoPriority::Q),
+            "R" => Ok(TodoPriority::R),
+            "S" => Ok(TodoPriority::S),
+            "T" => Ok(TodoPriority::T),
+            "U" => Ok(TodoPriority::U),
+            "V" => Ok(TodoPriority::V),
+            "W" => Ok(TodoPriority::W),
+            "X" => Ok(TodoPriority::X),
+            "Y" => Ok(TodoPriority::Y),
+            "Z" => Ok(TodoPriority::Z),
+            _ => Ok(TodoPriority::None),
+        }
+    }
+}
+
+impl Default for TodoPriority {
+    fn default() -> Self {
+        TodoPriority::None
     }
 }
 
@@ -166,10 +253,6 @@ impl Todo {
             .iter(),
         )
     }
-
-    pub fn simplify(&self) -> SimpleTodo {
-        SimpleTodo { inner: &self }
-    }
 }
 
 // Implement .parse() for Todo
@@ -198,12 +281,7 @@ impl FromStr for Todo {
                 idx = 2;
                 continue;
             } else if is_priority(token) {
-                priority = match &token[1..2] {
-                    "A" | "a" => TodoPriority::A,
-                    "B" | "b" => TodoPriority::B,
-                    "C" | "c" => TodoPriority::C,
-                    _ => TodoPriority::None,
-                }
+                priority = token[1..2].parse().unwrap_or_default()
             } else if let Some(date) = token.strip_prefix("due:") {
                 due_date = Some(date.to_string());
             } else if token.starts_with('@') {
@@ -224,33 +302,6 @@ impl FromStr for Todo {
             done_date,
             due_date,
         })
-    }
-}
-
-pub struct SimpleTodo<'a> {
-    inner: &'a Todo,
-}
-
-impl<'a> Display for SimpleTodo<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let pre = utility::join_non_empty(
-            [&self.inner.done_or_priority_string(), &self.inner.task].iter(),
-        );
-
-        let colourer = match self.inner.pri {
-            TodoPriority::A => colour::yellow,
-            TodoPriority::B => colour::green,
-            TodoPriority::C => colour::blue,
-            _ => colour::none,
-        };
-
-        let pre = if colour::should_colour() {
-            colourer(&pre)
-        } else {
-            pre
-        };
-
-        write!(f, "{:3}. {}", self.inner.idx, pre)
     }
 }
 
