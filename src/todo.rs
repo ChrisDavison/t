@@ -166,6 +166,10 @@ impl Todo {
             .iter(),
         )
     }
+
+    pub fn simplify(&self) -> SimpleTodo {
+        SimpleTodo { inner: &self }
+    }
 }
 
 // Implement .parse() for Todo
@@ -220,6 +224,33 @@ impl FromStr for Todo {
             done_date,
             due_date,
         })
+    }
+}
+
+pub struct SimpleTodo<'a> {
+    inner: &'a Todo,
+}
+
+impl<'a> Display for SimpleTodo<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let pre = utility::join_non_empty(
+            [&self.inner.done_or_priority_string(), &self.inner.task].iter(),
+        );
+
+        let colourer = match self.inner.pri {
+            TodoPriority::A => colour::yellow,
+            TodoPriority::B => colour::green,
+            TodoPriority::C => colour::blue,
+            _ => colour::none,
+        };
+
+        let pre = if colour::should_colour() {
+            colourer(&pre)
+        } else {
+            pre
+        };
+
+        write!(f, "{:3}. {}", self.inner.idx, pre)
     }
 }
 

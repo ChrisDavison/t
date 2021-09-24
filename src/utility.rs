@@ -20,6 +20,7 @@ pub fn todo_filter<'a>(
         .map(|x| x.to_string())
         .partition(|x| x.starts_with('-'));
 
+    let bad: Vec<_> = bad.iter().map(|x| x[1..].to_string()).collect();
     todos.filter(move |x| x.matches(&good, &bad))
 }
 
@@ -115,6 +116,8 @@ pub fn sort_by_priority<'a, I: Iterator<Item = &'a Todo>>(todos: I) -> Vec<Todo>
 
 #[cfg(test)]
 mod tests {
+    use crate::todo;
+
     use super::*;
     use chrono::TimeZone;
 
@@ -125,6 +128,24 @@ mod tests {
 
         now = iter_till_day_of_week(now, 6);
         assert_eq!(now, want);
+    }
+
+    #[test]
+    fn can_filter() {
+        let input = vec![Todo {
+            idx: 0,
+            task: String::from("This is the task"),
+            pri: todo::TodoPriority::None,
+            projects: vec![String::from("good"), String::from("bad")],
+            contexts: vec![],
+            done_date: None,
+            due_date: None,
+        }];
+        let expected = vec![];
+        let filtered: Vec<Todo> = todo_filter(input.iter(), &vec![String::from("-bad")])
+            .cloned()
+            .collect();
+        assert_eq!(filtered, expected);
     }
 
     #[test]

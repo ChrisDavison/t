@@ -42,11 +42,6 @@ pub fn done_summary<'a>(
     let today = utility::date_today();
     let mut last_week = HashMap::new();
 
-    // let n_days = std::env::var("T_DONESUMMARY_DAYS")
-    //     .unwrap_or_else(|_| "7".to_string())
-    //     .parse()?;
-    dbg!(&n_days);
-
     for done in utility::todo_filter(dones, filters) {
         let delta = done.days_since_done()?;
         if delta < n_days {

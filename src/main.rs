@@ -291,7 +291,7 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
         },
 
         Some("due") => Command::Due {
-            n_days: pargs.opt_free_from_str()?.unwrap_or(7),
+            n_days: pargs.value_from_str("--days").unwrap_or(7),
             filters: rest_as_strings(pargs),
         },
         Some("nodate" | "nd") => Command::NoDate {
@@ -299,8 +299,12 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
         },
         Some("archive") => Command::Archive,
         // CATCH ALL FOR UNRECOGNISED COMMAND
-        unrecognised => {
+        Some(unrecognised) => {
             println!("Command {:#?} not recognised.", unrecognised);
+            println!("{}", USAGE);
+            std::process::exit(1);
+        }
+        _ => {
             println!("{}", USAGE);
             std::process::exit(1);
         }
