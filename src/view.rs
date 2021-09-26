@@ -117,7 +117,7 @@ pub fn no_date<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) ->
 pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut projects = HashMap::new();
     for t in todos {
-        for project in &t.contexts {
+        for project in &t.projects {
             let entry = projects.entry(project).or_insert(0);
             *entry += 1;
         }
@@ -147,12 +147,15 @@ pub fn grouped_by_project<'a>(
     filters: &[String],
 ) -> Result<()> {
     let mut projects = HashMap::new();
-    for t in
-        todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None))
-    {
-        for project in &t.contexts {
-            let entry = projects.entry(project).or_insert(vec![]);
-            (*entry).push(t);
+    let mut no_project = Vec::new();
+    for t in todo_filter(todos, filters) {
+        if t.projects.is_empty() {
+            no_project.push(t);
+        } else {
+            for project in &t.projects {
+                let entry = projects.entry(project).or_insert(vec![]);
+                (*entry).push(t);
+            }
         }
     }
     for (p, todos_for_project) in projects {
@@ -162,6 +165,11 @@ pub fn grouped_by_project<'a>(
         }
         println!();
     }
+    println!("NO PROJECT");
+    for todo in no_project {
+        println!("{}", todo);
+    }
+    println!();
     Ok(())
 }
 
@@ -170,12 +178,15 @@ pub fn grouped_by_context<'a>(
     filters: &[String],
 ) -> Result<()> {
     let mut contexts = HashMap::new();
-    for t in
-        todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None))
-    {
-        for context in &t.contexts {
-            let entry = contexts.entry(context).or_insert(vec![]);
-            (*entry).push(t);
+    let mut no_context = Vec::new();
+    for t in todo_filter(todos, filters) {
+        if t.contexts.is_empty() {
+            no_context.push(t);
+        } else {
+            for context in &t.contexts {
+                let entry = contexts.entry(context).or_insert(vec![]);
+                (*entry).push(t);
+            }
         }
     }
     for (c, todos_for_context) in contexts {
@@ -185,5 +196,10 @@ pub fn grouped_by_context<'a>(
         }
         println!();
     }
+    println!("NO CONTEXT");
+    for todo in no_context {
+        println!("{}", todo);
+    }
+    println!();
     Ok(())
 }
