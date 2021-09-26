@@ -117,7 +117,7 @@ pub fn no_date<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) ->
 pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut projects = HashMap::new();
     for t in todos {
-        for project in &t.projects {
+        for project in &t.contexts {
             let entry = projects.entry(project).or_insert(0);
             *entry += 1;
         }
@@ -150,7 +150,7 @@ pub fn grouped_by_project<'a>(
     for t in
         todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None))
     {
-        for project in &t.projects {
+        for project in &t.contexts {
             let entry = projects.entry(project).or_insert(vec![]);
             (*entry).push(t);
         }
@@ -158,6 +158,29 @@ pub fn grouped_by_project<'a>(
     for (p, todos_for_project) in projects {
         println!("{}", p);
         for todo in todos_for_project {
+            println!("{}", todo);
+        }
+        println!();
+    }
+    Ok(())
+}
+
+pub fn grouped_by_context<'a>(
+    todos: impl Iterator<Item = &'a Todo>,
+    filters: &[String],
+) -> Result<()> {
+    let mut contexts = HashMap::new();
+    for t in
+        todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None))
+    {
+        for context in &t.contexts {
+            let entry = contexts.entry(context).or_insert(vec![]);
+            (*entry).push(t);
+        }
+    }
+    for (c, todos_for_context) in contexts {
+        println!("{}", c);
+        for todo in todos_for_context {
             println!("{}", todo);
         }
         println!();
