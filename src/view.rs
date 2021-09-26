@@ -148,7 +148,8 @@ pub fn grouped_by_project<'a>(
 ) -> Result<()> {
     let mut projects = HashMap::new();
     let mut no_project = Vec::new();
-    for t in todo_filter(todos, filters) {
+    let sorted_and_filtered = utility::sort_by_priority(todo_filter(todos, filters));
+    for t in &sorted_and_filtered {
         if t.projects.is_empty() {
             no_project.push(t);
         } else {
@@ -179,7 +180,8 @@ pub fn grouped_by_context<'a>(
 ) -> Result<()> {
     let mut contexts = HashMap::new();
     let mut no_context = Vec::new();
-    for t in todo_filter(todos, filters) {
+    let sorted_and_filtered = utility::sort_by_priority(todo_filter(todos, filters));
+    for t in &sorted_and_filtered {
         if t.contexts.is_empty() {
             no_context.push(t);
         } else {
