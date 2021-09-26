@@ -49,6 +49,8 @@ enum Command {
     ListProjects,
     /// Contexts
     ListContexts,
+    /// View tasks grouped by project
+    ProjectView { filters: Vec<String> },
     /// View done tasks, by date, for last N days
     DoneSummary { days: i64, filters: Vec<String> },
     /// View scheduled tasks
@@ -81,6 +83,7 @@ Commands:
     listpriority [FILTER]... [lsp] View tasks with a priority
     listprojects             [prj|lsprj] View projects
     listcontexts             [con|lscon] View contexts
+    projectview [FILTER]...  [pv] View tasks grouped by project
     due [FILTER]...          View scheduled tasks
     nodate [FILTER]...       [nd] view unscheduled tasks
     donesummary [FILTER]...  [ds] view completed tasks in last 7 days
@@ -151,6 +154,7 @@ fn main() -> Result<()> {
         Command::DoneSummary { days, filters } => view::done_summary(dones.iter(), &filters, days),
         Command::ListProjects => view::projects(todos.iter()),
         Command::ListContexts => view::contexts(todos.iter()),
+        Command::ProjectView { filters } => view::grouped_by_project(todos.iter(), &filters),
         // ========== Date-based views
         Command::Due { n_days, filters } => view::due(todos.iter(), n_days, &filters),
         Command::NoDate { filters } => view::no_date(todos.iter(), &filters),
@@ -285,6 +289,9 @@ fn parse_args(n_todos: usize, n_dones: usize) -> Result<(Command, bool)> {
         },
         Some("listprojects" | "prj" | "lsprj" | "projects") => Command::ListProjects,
         Some("listcontexts" | "con" | "lscon" | "contexts") => Command::ListContexts,
+        Some("projectview" | "pv") => Command::ProjectView {
+            filters: rest_as_strings(pargs),
+        },
         Some("donesummary" | "ds") => Command::DoneSummary {
             days: pargs.value_from_str("--days").unwrap_or(7),
             filters: rest_as_strings(pargs),
