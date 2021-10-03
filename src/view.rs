@@ -116,7 +116,11 @@ pub fn no_date<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) ->
 
 pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut projects = HashMap::new();
+    let mut n_no_project = 0;
     for t in todos {
+        if t.projects.is_empty() {
+            n_no_project += 1;
+        }
         for project in &t.projects {
             let entry = projects.entry(project).or_insert(0);
             *entry += 1;
@@ -125,12 +129,18 @@ pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     for (p, n) in projects {
         println!("{} {}", p, n);
     }
+    println!("NO PROJECT {}", n_no_project);
     Ok(())
 }
 
 pub fn contexts<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut contexts = HashMap::new();
+    let mut n_no_context = 0;
     for t in todos {
+        if t.contexts.is_empty() {
+            n_no_context += 1;
+            continue;
+        }
         for context in &t.contexts {
             let entry = contexts.entry(context).or_insert(0);
             *entry += 1;
@@ -139,6 +149,7 @@ pub fn contexts<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     for (c, n) in contexts {
         println!("{} {}", c, n);
     }
+    println!("NO CONTEXT {}", n_no_context);
     Ok(())
 }
 
