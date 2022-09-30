@@ -35,9 +35,17 @@ fn parse_file(filename: &Path) -> Result<Vec<Todo>> {
 
     let mut todos = Vec::new();
     for (idx, line) in reader.lines().enumerate() {
-        let mut todo: Todo = line?.parse()?;
-        todo.idx = idx;
-        todos.push(todo);
+        if let Ok(line) = line {
+            let mut todo: Todo = match line.parse() {
+                Ok(todo) => todo,
+                Err(e) => {
+                    eprintln!("Failed to parse todo `{}`: {}`", line, e);
+                    continue;
+                }
+            };
+            todo.idx = idx;
+            todos.push(todo);
+        }
     }
     Ok(todos)
 }
