@@ -81,7 +81,7 @@ pub fn due<'a>(
     datediffed_todos.sort_by(|(datediff1, _), (datediff2, _)| datediff2.cmp(datediff1));
     let mut prev = None;
     for (days_overdue, t) in datediffed_todos {
-        let days_in_future = days_overdue.abs() as usize;
+        let days_in_future: usize = days_overdue.unsigned_abs() as usize;
         if days_overdue < 0 && days_in_future > n_days {
             // Too far in future
             continue;
