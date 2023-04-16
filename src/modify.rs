@@ -28,21 +28,21 @@ pub fn addt(text: &str, todos: &mut Vec<Todo>) -> Result<()> {
     schedule(todos.len() - 1, todos, "today")
 }
 
-pub fn append(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
+pub fn append(idx: usize, todos: &mut [Todo], text: &str) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
         t.append_text(text);
     }
     Ok(())
 }
 
-pub fn prepend(idx: usize, todos: &mut Vec<Todo>, text: &str) -> Result<()> {
+pub fn prepend(idx: usize, todos: &mut [Todo], text: &str) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
         t.prepend_text(text);
     }
     Ok(())
 }
 
-pub fn prioritise(idx: usize, todos: &mut Vec<Todo>, priority: Option<String>) -> Result<()> {
+pub fn prioritise(idx: usize, todos: &mut [Todo], priority: Option<String>) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
         let priority = match priority.as_deref() {
             Some("A" | "a") => TodoPriority::A,
@@ -66,7 +66,7 @@ pub fn remove(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     Ok(())
 }
 
-pub fn schedule(idx: usize, todos: &mut Vec<Todo>, date: &str) -> Result<()> {
+pub fn schedule(idx: usize, todos: &mut [Todo], date: &str) -> Result<()> {
     if let Some(t) = todos.get_mut(idx) {
         t.schedule(date);
     }
@@ -109,7 +109,7 @@ pub fn archive(todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> Result<()> {
     Ok(())
 }
 
-pub fn do_task(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
+pub fn do_task(indices: &[usize], todos: &mut [Todo]) -> Result<()> {
     indices.iter().rev().for_each(|&idx| {
         if let Some(t) = todos.get_mut(idx) {
             t.mark_done()
@@ -130,7 +130,7 @@ pub fn undo(indices: &[usize], todos: &mut Vec<Todo>, dones: &mut Vec<Todo>) -> 
     Ok(())
 }
 
-pub fn unschedule_each(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
+pub fn unschedule_each(indices: &[usize], todos: &mut [Todo]) -> Result<()> {
     for &i in indices.iter().rev() {
         if let Some(t) = todos.get_mut(i) {
             t.unschedule();
@@ -139,7 +139,7 @@ pub fn unschedule_each(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
     Ok(())
 }
 
-pub fn schedule_each_today(indices: &[usize], todos: &mut Vec<Todo>) -> Result<()> {
+pub fn schedule_each_today(indices: &[usize], todos: &mut [Todo]) -> Result<()> {
     for &i in indices.iter().rev() {
         if let Some(t) = todos.get_mut(i) {
             t.schedule("today");
