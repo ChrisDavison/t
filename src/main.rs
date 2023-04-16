@@ -1,5 +1,3 @@
-#![feature(iter_intersperse)]
-
 extern crate anyhow;
 extern crate pretty_env_logger;
 #[macro_use]

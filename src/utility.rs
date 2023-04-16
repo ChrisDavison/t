@@ -63,12 +63,7 @@ pub fn get_dones() -> Result<Vec<Todo>> {
 pub fn save_to_file<'a>(todos: impl Iterator<Item = &'a Todo>, filename: String) -> Result<()> {
     let f = fs::File::create(&filename)?;
     let mut buf = BufWriter::new(f);
-    for t in todos
-        .map(|x| x.format_for_save())
-        .intersperse(String::from("\n"))
-    {
-        write!(buf, "{}", t)?;
-    }
+    write!(buf, "{}", intersperse(todos.map(|x| x.format_for_save()), "\n"))?;
     Ok(())
 }
 
@@ -109,11 +104,15 @@ fn iter_till_day_of_week(date: Date<Utc>, day_of_week: u8) -> Date<Utc> {
 }
 
 #[inline(always)]
-pub fn join_non_empty(ss: impl Iterator<Item = impl ToString>) -> String {
+pub fn intersperse(ss: impl Iterator<Item = impl ToString>, sep: &str) -> String {
     ss.map(|x| x.to_string())
-        .filter(|x| !x.is_empty())
-        .intersperse(String::from(" "))
-        .collect()
+        .collect::<Vec<_>>()
+        .join(sep)
+} 
+
+#[inline(always)]
+pub fn join_non_empty(ss: impl Iterator<Item = impl ToString>) -> String {
+    intersperse(ss, " ")
 }
 
 pub fn sort_by_priority<'a, I: Iterator<Item = &'a Todo>>(todos: I) -> Vec<Todo> {
