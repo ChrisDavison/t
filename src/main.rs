@@ -169,13 +169,13 @@ fn main() -> Result<()> {
     };
 
     if let Err(err) = result {
-        println!("{}", err.to_string());
+        println!("{}", err);
         std::process::exit(1);
     }
 
     if autoarchive {
         if let Err(err) = modify::archive(&mut todos, &mut dones) {
-            println!("{}", err.to_string());
+            println!("{}", err);
             std::process::exit(1);
         }
     }
