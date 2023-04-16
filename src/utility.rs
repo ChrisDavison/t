@@ -56,7 +56,7 @@ pub fn get_todos() -> Result<Vec<Todo>> {
 }
 
 pub fn get_dones() -> Result<Vec<Todo>> {
-    let donefile = env::var("DONEFILE").map_err(|_| "DONEFILE not set")?;
+    let donefile = env::var("DONEFILE").map_err(|_| "DONEFILE env var not set")?;
     parse_file(&PathBuf::from(donefile))
 }
 
