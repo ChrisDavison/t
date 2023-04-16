@@ -61,7 +61,7 @@ pub fn get_dones() -> Result<Vec<Todo>> {
 }
 
 pub fn save_to_file<'a>(todos: impl Iterator<Item = &'a Todo>, filename: String) -> Result<()> {
-    let f = fs::File::create(&filename)?;
+    let f = fs::File::create(filename)?;
     let mut buf = BufWriter::new(f);
     write!(buf, "{}", intersperse(todos.map(|x| x.format_for_save()), "\n"))?;
     Ok(())
