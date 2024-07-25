@@ -16,7 +16,7 @@ pub struct Todo {
     pub due_date: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum TodoPriority {
     A,
     B,
@@ -44,6 +44,7 @@ pub enum TodoPriority {
     X,
     Y,
     Z,
+    #[default]
     None,
 }
 
@@ -113,12 +114,6 @@ impl FromStr for TodoPriority {
             "Z" => Ok(TodoPriority::Z),
             _ => Ok(TodoPriority::None),
         }
-    }
-}
-
-impl Default for TodoPriority {
-    fn default() -> Self {
-        TodoPriority::None
     }
 }
 
@@ -319,8 +314,9 @@ impl Display for Todo {
             ]
             .iter(),
         );
-        let post =
-            utility::join_non_empty([&self.projects.join(" "), &self.contexts.join(" ")].iter());
+        let mut post_parts = self.projects.clone();
+        post_parts.extend(self.contexts.clone());
+        let post = utility::join_non_empty(post_parts.iter());
 
         let colourer = match self.pri {
             TodoPriority::A => colour::yellow,
@@ -330,12 +326,28 @@ impl Display for Todo {
         };
 
         let (pre, post) = if colour::should_colour() {
-            (colourer(&pre), colour::red(&post))
+            (
+                colourer(&pre),
+                if !post.trim().is_empty() {
+                    colour::red(&post)
+                } else {
+                    String::new()
+                },
+            )
         } else {
             (pre, post)
         };
+        let parts = [
+            format!("{:3}", self.idx),
+            pre.trim().to_string(),
+            post.trim().to_string(),
+        ]
+        .iter()
+        .filter(|x| !x.is_empty())
+        .cloned()
+        .collect::<Vec<_>>();
 
-        write!(f, "{:3}. {} {}", self.idx, pre, post)
+        write!(f, "{}", parts.join(" "))
     }
 }
 

@@ -8,10 +8,12 @@ use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
+pub fn print_todos<'a>(todos: impl Iterator<Item = &'a Todo>) {
+    println!("{}", todos.map(|x| x.to_string()).collect::<Vec<String>>().join("\n")); 
+}
+
 pub fn list<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
-    for todo in utility::sort_by_priority(todo_filter(todos, filters)) {
-        println!("{}", todo);
-    }
+    print_todos(utility::sort_by_priority(todo_filter(todos, filters)).iter());
 
     Ok(())
 }
@@ -20,16 +22,12 @@ pub fn list_priority<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[Strin
     let sorted = utility::sort_by_priority(
         todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None)),
     );
-    for todo in sorted {
-        println!("{}", todo);
-    }
+    print_todos(sorted.iter());
     Ok(())
 }
 
 pub fn done<'a>(dones: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
-    for done in &utility::sort_by_priority(todo_filter(dones, filters)) {
-        println!("{}", done);
-    }
+    print_todos(utility::sort_by_priority(todo_filter(dones, filters)).iter());
 
     Ok(())
 }

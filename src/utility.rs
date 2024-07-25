@@ -112,7 +112,7 @@ pub fn intersperse(ss: impl Iterator<Item = impl ToString>, sep: &str) -> String
 
 #[inline(always)]
 pub fn join_non_empty(ss: impl Iterator<Item = impl ToString>) -> String {
-    intersperse(ss, " ")
+    intersperse(ss.filter(|x| !x.to_string().is_empty()), " ")
 }
 
 pub fn sort_by_priority<'a, I: Iterator<Item = &'a Todo>>(todos: I) -> Vec<Todo> {
