@@ -11,7 +11,7 @@ pub struct Todo {
     pub task: String,
     pub pri: TodoPriority,
     pub projects: Vec<String>,
-    pub contexts: Vec<String>,
+    pub tags: Vec<String>,
     pub done_date: Option<String>,
     pub due_date: Option<String>,
 }
@@ -130,7 +130,7 @@ impl Todo {
             "{}{}{}",
             self.task,
             &self.projects.join(" "),
-            &self.contexts.join(" ")
+            &self.tags.join(" ")
         );
 
         let has_no_neg = !negatives
@@ -219,7 +219,7 @@ impl Todo {
         }
     }
 
-    // display [x DONEDATE | PRIORITY] TEXT [DUEDATE] +TAGS @CONTEXTS
+    // display [x DONEDATE | PRIORITY] TEXT [DUEDATE] +TAGS @tagS
     pub fn format_for_save(&self) -> String {
         utility::join_non_empty(
             [
@@ -231,22 +231,15 @@ impl Todo {
                     .map(|x| format!("due:{}", x))
                     .unwrap_or_default(),
                 &self.projects.join(" "),
-                &self.contexts.join(" "),
+                &self.tags.join(" "),
             ]
             .iter(),
         )
     }
 
-    // display TEXT +TAGS @CONTEXTS
+    // display TEXT +TAGS @tagS
     pub fn donesummary_format(&self) -> String {
-        utility::join_non_empty(
-            [
-                &self.task,
-                &self.projects.join(" "),
-                &self.contexts.join(" "),
-            ]
-            .iter(),
-        )
+        utility::join_non_empty([&self.task, &self.projects.join(" "), &self.tags.join(" ")].iter())
     }
 }
 
@@ -258,7 +251,7 @@ impl FromStr for Todo {
         let mut priority = TodoPriority::None;
         let mut task_parts = Vec::new();
         let mut projects = Vec::new();
-        let mut contexts = Vec::new();
+        let mut tags = Vec::new();
         let mut due_date = None;
 
         let token_iter: Vec<&str> = s.split_whitespace().collect();
@@ -280,7 +273,7 @@ impl FromStr for Todo {
             } else if let Some(date) = token.strip_prefix("due:") {
                 due_date = Some(date.to_string());
             } else if token.starts_with('@') {
-                contexts.push(token);
+                tags.push(token);
             } else if token.starts_with('+') {
                 projects.push(token);
             } else {
@@ -293,7 +286,7 @@ impl FromStr for Todo {
             task: task_parts.join(" "),
             pri: priority,
             projects: projects.iter().map(|x| x.to_string()).collect(),
-            contexts: contexts.iter().map(|x| x.to_string()).collect(),
+            tags: tags.iter().map(|x| x.to_string()).collect(),
             done_date,
             due_date,
         })
@@ -315,7 +308,7 @@ impl Display for Todo {
             .iter(),
         );
         let mut post_parts = self.projects.clone();
-        post_parts.extend(self.contexts.clone());
+        post_parts.extend(self.tags.clone());
         let post = utility::join_non_empty(post_parts.iter());
 
         let colourer = match self.pri {
@@ -366,7 +359,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -381,7 +374,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -397,7 +390,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some("2021-01-01".to_string()),
             due_date: None,
         };
@@ -412,7 +405,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -423,7 +416,7 @@ mod tests {
             task: "this is a test EXTRA".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -438,7 +431,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -449,7 +442,7 @@ mod tests {
             task: "EXTRA this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -464,7 +457,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -475,7 +468,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -490,7 +483,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
@@ -501,7 +494,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -516,7 +509,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
@@ -533,7 +526,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -543,7 +536,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some(date_today().format("%F").to_string()),
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -554,7 +547,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::A,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -564,7 +557,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some(date_today().format("%F").to_string()),
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -578,7 +571,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some(date_today().format("%F").to_string()),
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -588,7 +581,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some(date_today().format("%F").to_string()),
         };
@@ -602,7 +595,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -612,7 +605,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::A,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: None,
         };
@@ -626,7 +619,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::A,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
@@ -636,7 +629,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
@@ -650,7 +643,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::A,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: None,
             due_date: Some("2021-01-01".to_string()),
         };
@@ -664,7 +657,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some("2021-01-01".to_string()),
             due_date: Some("2021-01-01".to_string()),
         };
@@ -678,7 +671,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec![],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some("2021-01-01".to_string()),
             due_date: Some("2021-01-01".to_string()),
         };
@@ -695,7 +688,7 @@ mod tests {
             task: "this is a test".to_string(),
             pri: TodoPriority::None,
             projects: vec!["+p1".to_string(), "+p2".to_string()],
-            contexts: vec!["@c1".to_string()],
+            tags: vec!["@c1".to_string()],
             done_date: Some("2021-01-01".to_string()),
             due_date: Some("2021-01-01".to_string()),
         };

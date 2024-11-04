@@ -2,14 +2,23 @@ use super::{
     todo::Todo,
     utility::{self, todo_filter},
 };
+use std::process::Command;
 
 use chrono::Duration;
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
 
 pub fn print_todos<'a>(todos: impl Iterator<Item = &'a Todo>) {
-    println!("{}", todos.map(|x| x.to_string()).collect::<Vec<String>>().join("\n")); 
+    println!(
+        "{}",
+        todos
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join("\n")
+    );
 }
 
 pub fn list<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
@@ -112,6 +121,15 @@ pub fn no_date<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) ->
     Ok(())
 }
 
+pub fn no_projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
+    for t in todos {
+        if t.projects.is_empty() {
+            println!("{}", t);
+        }
+    }
+    Ok(())
+}
+
 pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     let mut projects = HashMap::new();
     let mut n_no_project = 0;
@@ -131,23 +149,32 @@ pub fn projects<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     Ok(())
 }
 
-pub fn contexts<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
-    let mut contexts = HashMap::new();
-    let mut n_no_context = 0;
+pub fn no_tags<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
     for t in todos {
-        if t.contexts.is_empty() {
-            n_no_context += 1;
+        if t.tags.is_empty() {
+            println!("{}", t);
+        }
+    }
+    Ok(())
+}
+
+pub fn tags<'a>(todos: impl Iterator<Item = &'a Todo>) -> Result<()> {
+    let mut tags = HashMap::new();
+    let mut n_no_tag = 0;
+    for t in todos {
+        if t.tags.is_empty() {
+            n_no_tag += 1;
             continue;
         }
-        for context in &t.contexts {
-            let entry = contexts.entry(context).or_insert(0);
+        for tag in &t.tags {
+            let entry = tags.entry(tag).or_insert(0);
             *entry += 1;
         }
     }
-    for (c, n) in contexts {
+    for (c, n) in tags {
         println!("{} {}", c, n);
     }
-    println!("NO CONTEXT {}", n_no_context);
+    println!("NO tag {}", n_no_tag);
     Ok(())
 }
 
@@ -183,34 +210,53 @@ pub fn grouped_by_project<'a>(
     Ok(())
 }
 
-pub fn grouped_by_context<'a>(
-    todos: impl Iterator<Item = &'a Todo>,
-    filters: &[String],
-) -> Result<()> {
-    let mut contexts = HashMap::new();
-    let mut no_context = Vec::new();
+pub fn grouped_by_tag<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
+    let mut tags = HashMap::new();
+    let mut no_tag = Vec::new();
     let sorted_and_filtered = utility::sort_by_priority(todo_filter(todos, filters));
     for t in &sorted_and_filtered {
-        if t.contexts.is_empty() {
-            no_context.push(t);
+        if t.tags.is_empty() {
+            no_tag.push(t);
         } else {
-            for context in &t.contexts {
-                let entry = contexts.entry(context).or_insert(vec![]);
+            for tag in &t.tags {
+                let entry = tags.entry(tag).or_insert(vec![]);
                 (*entry).push(t);
             }
         }
     }
-    for (c, todos_for_context) in contexts {
+    for (c, todos_for_tag) in tags {
         println!("{}", c);
-        for todo in todos_for_context {
+        for todo in todos_for_tag {
             println!("{}", todo);
         }
         println!();
     }
-    println!("NO CONTEXT");
-    for todo in no_context {
+    println!("NO tag");
+    for todo in no_tag {
         println!("{}", todo);
     }
     println!();
+    Ok(())
+}
+
+pub fn open_link(todos: &[Todo], indices: &[usize]) -> Result<()> {
+    lazy_static! {
+        static ref RE_MD: Regex = Regex::new(r#"\[.+?\]\((.+)\)"#).unwrap();
+    }
+    let mut links = Vec::new();
+    indices.iter().for_each(|&idx| {
+        if let Some(t) = todos.get(idx) {
+            for cap in RE_MD.captures_iter(&t.task) {
+                let linktext: String = cap[1].into();
+                links.push(linktext.clone());
+            }
+        }
+    });
+
+    Command::new("open")
+        .args(links)
+        .spawn()
+        .expect("Failed to open links");
+
     Ok(())
 }
