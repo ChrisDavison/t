@@ -26,7 +26,7 @@ enum Command {
     //                         Add new tasks
     // ------------------------------------------------------------
     /// Add a task
-    #[command(visible_aliases = &["a"])]
+    #[command(visible_aliases = &["a", "new"])]
     Add { text: String },
     /// Add a task and complete immediately
     Addx { text: String },
@@ -48,14 +48,14 @@ enum Command {
     #[command(visible_aliases = &["pri", "p"])]
     Prioritise { idx: usize, priority: String },
     /// Deprioritise a task
-    #[command(visible_aliases = &["depri", "dp"])]
+    #[command(visible_aliases = &["dp"])]
     Deprioritise { idx: usize },
 
     // ------------------------------------------------------------
     //                 Modify completion / existance
     // ------------------------------------------------------------
     /// Remove a task
-    #[command(visible_aliases = &["rm"])]
+    #[command(visible_aliases = &["rm", "del"])]
     Remove { idxs: Vec<usize> },
     /// Move task to DONEFILE
     Do { idxs: Vec<usize> },
@@ -68,6 +68,7 @@ enum Command {
     //                          Scheduling
     // ------------------------------------------------------------
     /// Schedule a task
+    #[command(visible_aliases = &["s"])]
     Schedule { idx: usize, date: String },
     /// Remove due date from task
     Unschedule { idxs: Vec<usize> },
@@ -84,6 +85,7 @@ enum Command {
     #[command(visible_aliases = &["lsp"])]
     ListPriority { filters: Vec<String> },
     /// View done tasks
+    #[command(visible_aliases = &["lsd"])]
     ListDone { filters: Vec<String> },
     /// View scheduled tasks
     Due { n_days: usize, filters: Vec<String> },
@@ -98,10 +100,10 @@ enum Command {
     // ------------------------------------------------------------
     /// Projects
     #[command(visible_aliases = &["proj"])]
-    ListProjects,
+    Projects,
     /// Without a project
-    #[command(visible_aliases = &["noproj", "projectless"])]
-    NoProjects,
+    #[command(visible_aliases = &["noproj"])]
+    Projectless,
     /// View tasks grouped by project
     #[command(visible_aliases = &["pv"])]
     ProjectView { filters: Vec<String> },
@@ -111,10 +113,10 @@ enum Command {
     // ------------------------------------------------------------
     /// Tags
     #[command(visible_aliases = &["tag"])]
-    ListTags,
+    Tags,
     /// Without a tag
-    #[command(visible_aliases = &["notag", "tagless"])]
-    NoTags,
+    #[command(visible_aliases = &["notag"])]
+    Tagless,
     /// View tasks grouped by context
     #[command(visible_aliases = &["tv"])]
     TagView { filters: Vec<String> },
@@ -215,15 +217,15 @@ fn main() -> Result<()> {
         // ------------------------------------------------------------
         //                       Views - Projects
         // ------------------------------------------------------------
-        Command::ListProjects => view::projects(todos.iter()),
-        Command::NoProjects => view::no_projects(todos.iter()),
+        Command::Projects => view::projects(todos.iter()),
+        Command::Projectless => view::no_projects(todos.iter()),
         Command::ProjectView { filters } => view::grouped_by_project(todos.iter(), &filters),
 
         // ------------------------------------------------------------
         //                         Views - Tags
         // ------------------------------------------------------------
-        Command::ListTags => view::tags(todos.iter()),
-        Command::NoTags => view::no_tags(todos.iter()),
+        Command::Tags => view::tags(todos.iter()),
+        Command::Tagless => view::no_tags(todos.iter()),
         Command::TagView { filters } => view::grouped_by_tag(todos.iter(), &filters),
 
         // ------------------------------------------------------------

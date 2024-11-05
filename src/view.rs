@@ -5,8 +5,6 @@ use super::{
 use std::process::Command;
 
 use chrono::Duration;
-use lazy_static::lazy_static;
-use regex::Regex;
 use std::collections::HashMap;
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
@@ -240,18 +238,11 @@ pub fn grouped_by_tag<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[Stri
 }
 
 pub fn open_link(todos: &[Todo], indices: &[usize]) -> Result<()> {
-    lazy_static! {
-        static ref RE_MD: Regex = Regex::new(r#"\[.+?\]\((.+)\)"#).unwrap();
-    }
-    let mut links = Vec::new();
-    indices.iter().for_each(|&idx| {
-        if let Some(t) = todos.get(idx) {
-            for cap in RE_MD.captures_iter(&t.task) {
-                let linktext: String = cap[1].into();
-                links.push(linktext.clone());
-            }
-        }
-    });
+    let links: Vec<String> = indices
+        .iter()
+        .flat_map(|&idx| todos.get(idx).map(|t| t.links()))
+        .flatten()
+        .collect();
 
     Command::new("open")
         .args(links)

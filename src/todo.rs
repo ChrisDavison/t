@@ -1,6 +1,8 @@
 use chrono::{Date, NaiveDate, Utc};
 
 use super::{colour, utility};
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::fmt::{self, Display};
 use std::str::FromStr;
 
@@ -240,6 +242,16 @@ impl Todo {
     // display TEXT +TAGS @tagS
     pub fn donesummary_format(&self) -> String {
         utility::join_non_empty([&self.task, &self.projects.join(" "), &self.tags.join(" ")].iter())
+    }
+
+    pub fn links(&self) -> Vec<String> {
+        lazy_static! {
+            static ref RE_MD: Regex = Regex::new(r#"\[.+?\]\((.+)\)"#).unwrap();
+        }
+        RE_MD
+            .captures_iter(&self.task)
+            .map(|cap| cap[1].to_string())
+            .collect()
     }
 }
 
