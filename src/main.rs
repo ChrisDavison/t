@@ -22,6 +22,9 @@ struct Cli {
 #[derive(Subcommand, Debug, Clone)]
 #[command(rename_all = "camel")]
 enum Command {
+    // ------------------------------------------------------------
+    //                         Add new tasks
+    // ------------------------------------------------------------
     /// Add a task
     #[command(visible_aliases = &["a"])]
     Add { text: String },
@@ -31,6 +34,10 @@ enum Command {
     Adda { text: String },
     /// Add a task and schedule today
     Addt { text: String },
+
+    // ------------------------------------------------------------
+    //                     Modify existing tasks
+    // ------------------------------------------------------------
     /// Append text to a task
     #[command(visible_aliases = &["app"])]
     Append { idx: usize, text: String },
@@ -43,6 +50,10 @@ enum Command {
     /// Deprioritise a task
     #[command(visible_aliases = &["depri", "dp"])]
     Deprioritise { idx: usize },
+
+    // ------------------------------------------------------------
+    //                 Modify completion / existance
+    // ------------------------------------------------------------
     /// Remove a task
     #[command(visible_aliases = &["rm"])]
     Remove { idxs: Vec<usize> },
@@ -50,12 +61,22 @@ enum Command {
     Do { idxs: Vec<usize> },
     /// Move task from DONEFILE to TODOFILE
     Undo { idxs: Vec<usize> },
+    /// Move done tasks into DONEFILE
+    Archive,
+
+    // ------------------------------------------------------------
+    //                          Scheduling
+    // ------------------------------------------------------------
     /// Schedule a task
     Schedule { idx: usize, date: String },
     /// Remove due date from task
     Unschedule { idxs: Vec<usize> },
     /// Schedule task today
     Today { idxs: Vec<usize> },
+
+    // ------------------------------------------------------------
+    //                             Views
+    // ------------------------------------------------------------
     /// View tasks
     #[command(visible_aliases = &["ls"])]
     List { filters: Vec<String> },
@@ -64,36 +85,46 @@ enum Command {
     ListPriority { filters: Vec<String> },
     /// View done tasks
     ListDone { filters: Vec<String> },
+    /// View scheduled tasks
+    Due { n_days: usize, filters: Vec<String> },
+    /// View unscheduled tasks
+    NoDate { filters: Vec<String> },
+    /// View done tasks, by date, for last N days
+    #[command(visible_aliases = &["ds"])]
+    DoneSummary { days: i64, filters: Vec<String> },
+
+    // ------------------------------------------------------------
+    //                       Views - Projects
+    // ------------------------------------------------------------
     /// Projects
     #[command(visible_aliases = &["proj"])]
     ListProjects,
     /// Without a project
     #[command(visible_aliases = &["noproj", "projectless"])]
     NoProjects,
+    /// View tasks grouped by project
+    #[command(visible_aliases = &["pv"])]
+    ProjectView { filters: Vec<String> },
+
+    // ------------------------------------------------------------
+    //                         Views - Tags
+    // ------------------------------------------------------------
     /// Tags
     #[command(visible_aliases = &["tag"])]
     ListTags,
     /// Without a tag
     #[command(visible_aliases = &["notag", "tagless"])]
     NoTags,
-    /// Open link in task
-    #[command(visible_aliases = &["open", "url", "urls"])]
-    Link { indices: Vec<usize> },
-    /// View tasks grouped by project
-    #[command(visible_aliases = &["pv"])]
-    ProjectView { filters: Vec<String> },
     /// View tasks grouped by context
     #[command(visible_aliases = &["tv"])]
     TagView { filters: Vec<String> },
-    /// View done tasks, by date, for last N days
-    #[command(visible_aliases = &["ds"])]
-    DoneSummary { days: i64, filters: Vec<String> },
-    /// View scheduled tasks
-    Due { n_days: usize, filters: Vec<String> },
-    /// View unscheduled tasks
-    NoDate { filters: Vec<String> },
-    /// Move done tasks into DONEFILE
-    Archive,
+
+    // ------------------------------------------------------------
+    //                            Utility
+    // ------------------------------------------------------------
+    /// Open link in task
+    #[command(visible_aliases = &["open", "url", "urls"])]
+    Link { indices: Vec<usize> },
 }
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
@@ -135,11 +166,17 @@ fn main() -> Result<()> {
     debug!("Autoarchiving? {}", autoarchive);
 
     let result = match opts.command {
-        // ========== Modification
+        // ------------------------------------------------------------
+        //                         Add new tasks
+        // ------------------------------------------------------------
         Command::Add { text } => modify::add(&text, &mut todos),
         Command::Addx { text } => modify::addx(&text, &mut todos),
         Command::Adda { text } => modify::adda(&text, &mut todos),
         Command::Addt { text } => modify::addt(&text, &mut todos),
+
+        // ------------------------------------------------------------
+        //                     Modify existing tasks
+        // ------------------------------------------------------------
         Command::Append { idx, text } => modify::append(idx, &mut todos, &text),
         Command::Prepend { idx, text } => modify::prepend(idx, &mut todos, &text),
         Command::Prioritise { idx, priority } => {
@@ -147,33 +184,52 @@ fn main() -> Result<()> {
         }
         Command::Deprioritise { idx } => modify::prioritise(idx, &mut todos, None),
 
+        // ------------------------------------------------------------
+        //                 Modify completion / existance
+        // ------------------------------------------------------------
         Command::Remove { idxs } => modify::remove(&idxs, &mut todos),
         Command::Do { idxs } => modify::do_task(&idxs, &mut todos),
         Command::Undo { idxs } => modify::undo(&idxs, &mut todos, &mut dones),
-        // ========== SCHEDULING
-        Command::Schedule { idx, date } => modify::schedule(idx, &mut todos, &date),
-        Command::Unschedule { idxs } => modify::unschedule_each(&idxs, &mut todos),
-        Command::Today { idxs } => modify::schedule_each_today(&idxs, &mut todos),
-        // ========== Filtered views
-        Command::List { filters } => view::list(todos.iter(), &filters),
-        Command::ListPriority { filters } => view::list_priority(todos.iter(), &filters),
-        Command::ListDone { filters } => view::done(dones.iter(), &filters),
-        Command::DoneSummary { days, filters } => view::done_summary(dones.iter(), &filters, days),
-        Command::ListProjects => view::projects(todos.iter()),
-        Command::NoProjects => view::no_projects(todos.iter()),
-        Command::ListTags => view::tags(todos.iter()),
-        Command::NoTags => view::no_tags(todos.iter()),
-        Command::ProjectView { filters } => view::grouped_by_project(todos.iter(), &filters),
-        Command::TagView { filters } => view::grouped_by_tag(todos.iter(), &filters),
-        // ========== Date-based views
-        Command::Due { n_days, filters } => view::due(todos.iter(), n_days, &filters),
-        Command::NoDate { filters } => view::no_date(todos.iter(), &filters),
-        // ========== Utility
-        Command::Link { indices } => view::open_link(&todos, &indices),
         Command::Archive => {
             autoarchive = false;
             modify::archive(&mut todos, &mut dones)
         }
+
+        // ------------------------------------------------------------
+        //                          Scheduling
+        // ------------------------------------------------------------
+        Command::Schedule { idx, date } => modify::schedule(idx, &mut todos, &date),
+        Command::Unschedule { idxs } => modify::unschedule_each(&idxs, &mut todos),
+        Command::Today { idxs } => modify::schedule_each_today(&idxs, &mut todos),
+
+        // ------------------------------------------------------------
+        //                             Views
+        // ------------------------------------------------------------
+        Command::List { filters } => view::list(todos.iter(), &filters),
+        Command::ListPriority { filters } => view::list_priority(todos.iter(), &filters),
+        Command::ListDone { filters } => view::done(dones.iter(), &filters),
+        Command::Due { n_days, filters } => view::due(todos.iter(), n_days, &filters),
+        Command::NoDate { filters } => view::no_date(todos.iter(), &filters),
+        Command::DoneSummary { days, filters } => view::done_summary(dones.iter(), &filters, days),
+
+        // ------------------------------------------------------------
+        //                       Views - Projects
+        // ------------------------------------------------------------
+        Command::ListProjects => view::projects(todos.iter()),
+        Command::NoProjects => view::no_projects(todos.iter()),
+        Command::ProjectView { filters } => view::grouped_by_project(todos.iter(), &filters),
+
+        // ------------------------------------------------------------
+        //                         Views - Tags
+        // ------------------------------------------------------------
+        Command::ListTags => view::tags(todos.iter()),
+        Command::NoTags => view::no_tags(todos.iter()),
+        Command::TagView { filters } => view::grouped_by_tag(todos.iter(), &filters),
+
+        // ------------------------------------------------------------
+        //                            Utility
+        // ------------------------------------------------------------
+        Command::Link { indices } => view::open_link(&todos, &indices),
     };
 
     if let Err(err) = result {
