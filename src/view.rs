@@ -2,7 +2,6 @@ use super::{
     todo::Todo,
     utility::{self, todo_filter},
 };
-use std::process::Command;
 
 use chrono::Duration;
 use std::collections::HashMap;
@@ -237,17 +236,17 @@ pub fn grouped_by_tag<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[Stri
     Ok(())
 }
 
-pub fn open_link(todos: &[Todo], indices: &[usize]) -> Result<()> {
-    let links: Vec<String> = indices
-        .iter()
-        .flat_map(|&idx| todos.get(idx).map(|t| t.links()))
-        .flatten()
-        .collect();
-
-    Command::new("open")
-        .args(links)
-        .spawn()
-        .expect("Failed to open links");
-
+pub fn links<'a>(todos: impl Iterator<Item = &'a Todo>, filters: &[String]) -> Result<()> {
+    let filtered =
+        todo_filter(todos, filters).filter(|t| !matches!(t.pri, crate::todo::TodoPriority::None));
+    for t in filtered {
+        let l = t.links();
+        if !l.is_empty() {
+            println!("{t}");
+            for lnk in l {
+                println!("\t{}", lnk);
+            }
+        }
+    }
     Ok(())
 }

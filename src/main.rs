@@ -125,8 +125,10 @@ enum Command {
     //                            Utility
     // ------------------------------------------------------------
     /// Open link in task
-    #[command(visible_aliases = &["open", "url", "urls"])]
+    #[command(visible_aliases = &["open", "url"])]
     Link { indices: Vec<usize> },
+    #[command(visible_aliases = &["urls"])]
+    Links { filters: Vec<String> },
 }
 
 type Result<T> = ::std::result::Result<T, Box<dyn (::std::error::Error)>>;
@@ -231,7 +233,8 @@ fn main() -> Result<()> {
         // ------------------------------------------------------------
         //                            Utility
         // ------------------------------------------------------------
-        Command::Link { indices } => view::open_link(&todos, &indices),
+        Command::Link { indices } => utility::open_link(&todos, &indices),
+        Command::Links { filters } => view::links(todos.iter(), &filters),
     };
 
     if let Err(err) = result {

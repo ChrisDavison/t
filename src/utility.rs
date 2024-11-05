@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use super::todo::Todo;
 
@@ -63,7 +64,11 @@ pub fn get_dones() -> Result<Vec<Todo>> {
 pub fn save_to_file<'a>(todos: impl Iterator<Item = &'a Todo>, filename: String) -> Result<()> {
     let f = fs::File::create(filename)?;
     let mut buf = BufWriter::new(f);
-    write!(buf, "{}", intersperse(todos.map(|x| x.format_for_save()), "\n"))?;
+    write!(
+        buf,
+        "{}",
+        intersperse(todos.map(|x| x.format_for_save()), "\n")
+    )?;
     Ok(())
 }
 
@@ -105,10 +110,8 @@ fn iter_till_day_of_week(date: Date<Utc>, day_of_week: u8) -> Date<Utc> {
 
 #[inline(always)]
 pub fn intersperse(ss: impl Iterator<Item = impl ToString>, sep: &str) -> String {
-    ss.map(|x| x.to_string())
-        .collect::<Vec<_>>()
-        .join(sep)
-} 
+    ss.map(|x| x.to_string()).collect::<Vec<_>>().join(sep)
+}
 
 #[inline(always)]
 pub fn join_non_empty(ss: impl Iterator<Item = impl ToString>) -> String {
@@ -119,6 +122,21 @@ pub fn sort_by_priority<'a, I: Iterator<Item = &'a Todo>>(todos: I) -> Vec<Todo>
     let mut todos: Vec<Todo> = todos.cloned().collect();
     todos.sort_by(|a, b| a.pri.cmp(&b.pri));
     todos
+}
+
+pub fn open_link(todos: &[Todo], indices: &[usize]) -> Result<()> {
+    let links: Vec<String> = indices
+        .iter()
+        .flat_map(|&idx| todos.get(idx).map(|t| t.links()))
+        .flatten()
+        .collect();
+
+    Command::new("open")
+        .args(links)
+        .spawn()
+        .expect("Failed to open links");
+
+    Ok(())
 }
 
 #[cfg(test)]
