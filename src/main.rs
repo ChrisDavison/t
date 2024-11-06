@@ -88,7 +88,10 @@ enum Command {
     #[command(visible_aliases = &["lsd"])]
     ListDone { filters: Vec<String> },
     /// View scheduled tasks
-    Due { n_days: usize, filters: Vec<String> },
+    Due {
+        n_days: Option<usize>,
+        filters: Vec<String>,
+    },
     /// View unscheduled tasks
     NoDate { filters: Vec<String> },
     /// View done tasks, by date, for last N days
@@ -212,7 +215,7 @@ fn main() -> Result<()> {
         Command::List { filters } => view::list(todos.iter(), &filters),
         Command::ListPriority { filters } => view::list_priority(todos.iter(), &filters),
         Command::ListDone { filters } => view::done(dones.iter(), &filters),
-        Command::Due { n_days, filters } => view::due(todos.iter(), n_days, &filters),
+        Command::Due { n_days, filters } => view::due(todos.iter(), n_days.unwrap_or(0), &filters),
         Command::NoDate { filters } => view::no_date(todos.iter(), &filters),
         Command::DoneSummary { days, filters } => view::done_summary(dones.iter(), &filters, days),
 
